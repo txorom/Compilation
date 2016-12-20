@@ -8,10 +8,9 @@ struct element{
   struct element *next;
 };
 
-void new_tab_in_liste(struct element *e);
-int add_list(struct element *list, struct expr *e, char *name);
-struct expr *find_list(struct element *e, char *name); //return the struct expr named name if it is in the table and NULL else
-void delete_first_tab(struct element *e);
-void delete_liste(struct element *e);
+void new_tab_in_liste(struct element *e); // create a new symbol tab in the list (use at the beginning of a block)
+int add_list(struct element *list, struct expr *e, char *name); //add a new symbol in the symbol tab.
+void delete_first_tab(struct element *e); //delete the current symbol tab (use at the end of a block)
+void delete_liste(struct element *e); //delete all the symbol tabs (for use at the end)
 
 #endif
