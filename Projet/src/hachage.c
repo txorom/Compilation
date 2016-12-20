@@ -13,7 +13,7 @@ struct symbol *new_symbol(char *name, struct expr *ex){
 
 int fn_hachage(const char *name){
 	unsigned int hash = 0; 
-	while (*name!='\0') hash = hash*31 + *s++;
+	while (*name!='\0') hash = hash*31 + *name++;
 	return hash%SIZE;
 }
 
@@ -33,13 +33,13 @@ int add_tab(struct tab_hach *tab, struct expr *e, char *name){
 	return 0;
 }
 
-struct expr *is_in_tab(struct tab_hach *tab, char *name){
+struct expr *find_tab(struct tab_hach *tab, char *name){
 	int hach = fn_hachage(name);
-	return tab->tab[hach];
+	return tab->tab[hach]->e;
 }
 
 void delete_tab(struct tab_hach *tab){
-	for(int i =0; i<SIZE; i++){
+	for(int i =0; i<SIZE; i++)
 		if(tab->tab[i] != NULL)
 			free(tab->tab[i]);
 	free(tab);
