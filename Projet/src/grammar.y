@@ -58,7 +58,7 @@ primary_expression
 | CONSTANTI {
               $$=new_expr();
               $$->var=new_var();
-              $$->type=new_type(INT);
+              $$->t=new_type(TYPE_INT);
               char *code;
               asprintf(&code, "%%x%d = add i32 0, %d \n",$$->var, $1);
               $$->code = code;
@@ -66,9 +66,9 @@ primary_expression
 | CONSTANTD {
               $$=new_expr();
               $$->var=new_var();
-              $$->type=new_type(DOUBLE);
+              $$->t=new_type(TYPE_DOUBLE);
               char *code;
-              asprintf(&code, "%%x%f = fadd double %s, %s \n",$$->var, double_to_hex_str(0.0), double_to_hex_str($1));
+              asprintf(&code, "%%x%d = fadd double %s, %s \n",$$->var, double_to_hex_str(0.0), double_to_hex_str($1));
               $$->code = code;
             }
 | '(' expression ')'

@@ -1,5 +1,5 @@
 #ifndef _UTILS_
-#define _UTILS
+#define _UTILS_
 
 char *double_to_hex_str(double);
 int new_var();
