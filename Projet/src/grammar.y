@@ -22,7 +22,8 @@
 %token TYPE_NAME
 %token INT DOUBLE VOID
 %token IF ELSE DO WHILE RETURN FOR
-%type <e> primary_expression //conditional_expression logical_or_expression logical_and_expression shift_expression postfix_expression argument_expression_list unary_expression
+%type <e> conditional_expression logical_or_expression logical_and_expression shift_expression primary_expression postfix_expression argument_expression_list unary_expression
+unary_operator multiplicative_expression additive_expression comparison_expression expression assignment_operator declaration declarator_list type_name declarator parameter_list parameter_declaration statement compound_statement declaration_list statement_list expression_statement selection_statement iteration_statement jump_statement program external_declaration function_definition
 %start program
 %union {
   char *string;
@@ -54,7 +55,7 @@ shift_expression
 ;
 
 primary_expression
-: IDENTIFIER
+: IDENTIFIER 
 | CONSTANTI {
               $$=new_expr();
               $$->var=new_var();
@@ -127,7 +128,7 @@ expression
 ;
 
 assignment_operator
-: '='
+: '=' 
 | MUL_ASSIGN
 | DIV_ASSIGN
 | REM_ASSIGN
@@ -147,13 +148,13 @@ declarator_list
 ;
 
 type_name
-: VOID
-| INT
+: VOID 
+| INT 
 | DOUBLE
 ;
 
 declarator
-: IDENTIFIER    //ajouter dans la table de hachage(table des symboles) le nom de la variable $1 (=IDENTIFIER)
+: IDENTIFIER //ajouter dans la table de hachage(table des symboles) le nom de la variable $1 (=IDENTIFIER)
 | '(' declarator ')'
 | declarator '(' parameter_list ')'
 | declarator '(' ')'
