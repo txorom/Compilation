@@ -1,38 +1,29 @@
 #ifndef _HACHAGE_
 #define _HACHAGE_
 
+#include <string.h>
+
 #include "expr.h"
+
 #define SIZE 1013
 
 struct symbol{
-	char *nom;
+	char *name;
 	struct expr *e;
 };
 
-struct symbol new_symbol(char *nom, struct expr *e);
-
-struct element{
-	struct symbol *t;
-	struct element *next;
-};
-
-struct element DERNIER ={NULL,NULL};
-
-void ajout_element(struct element *first, struct symbol *sym);
-int est_dans_list(struct element *first, char *nom);
-void suppr_list(struct element *first, char *nom);
-void delete_list(struct element *first);
+struct symbol *new_symbol(char *name, struct expr *ex);
 
 struct tab_hach{
-	struct element *tab[SIZE];
+	struct symbol *tab[SIZE];
 };
 
-int fn_hachage(struct type t);
+int fn_hachage(const char *name);
 
 struct tab_hach *new_tab();
-void ajout_tab(struct tab_hach *tab, struct expr *e, char *nom);
-int est_dans_tab(struct tab_hach *tab, char *nom)
-void supprime_tab(struct tab_hach *tab);
+void add_tab(struct tab_hach *tab, struct expr *e, char *name);
+int is_in_tab(struct tab_hach *tab, char *name)
+void delete_tab(struct tab_hach *tab);
 
 
 #endif
