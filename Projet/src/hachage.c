@@ -35,7 +35,10 @@ int add_tab(struct tab_hach *tab, struct expr *e, char *name){
 
 struct expr *find_tab(struct tab_hach *tab, char *name){
 	int hach = fn_hachage(name);
-	return tab->tab[hach]->e;
+	if(tab->tab[hach])
+		return tab->tab[hach]->e;
+	else 
+		return NULL;
 }
 
 void delete_tab(struct tab_hach *tab){

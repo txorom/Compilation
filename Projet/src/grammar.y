@@ -1,16 +1,17 @@
 %{
+    #define _GNU_SOURCE
     #include <stdio.h>
     #include <stdlib.h>
+    #include <string.h>
     #include "expr.h"
     #include "type.h"
     #include "utils.h"
-    #include "hachage.h"
+    #include "liste.h"
     #define couleur(param) printf("\033[%sm",param)
     extern int yylineno;
-    extern int column;
     int yylex ();
     int yyerror ();
-
+    struct element *tab_symbol;
 %}
 
 %token <string> IDENTIFIER
@@ -37,34 +38,66 @@ unary_operator multiplicative_expression additive_expression comparison_expressi
 %%
 
 conditional_expression
-: logical_or_expression {}
+: logical_or_expression {$$ = new_expr();
+                         char *code;
+                         asprintf(&code, "%s", $1->code);
+                         $$->code = code;
+                        }
 ;
 
 logical_or_expression
-: logical_and_expression {}
+: logical_and_expression {$$ = new_expr();
+                          char *code;
+                          asprintf(&code, "%s", $1->code);
+                          $$->code = code;
+                          $$->t = new_type(TYPE_INT);
+                         }
 | logical_or_expression OR logical_and_expression {}
 ;
 
 logical_and_expression
-: comparison_expression {}
+: comparison_expression {$$ = new_expr();
+                         char *code;
+                         asprintf(&code, "%s", $1->code);
+                         $$->code = code;
+                        }
 | logical_and_expression AND comparison_expression {}
 ;
 
 
 shift_expression
-: additive_expression {}
+: additive_expression {$$ = new_expr();
+                       char *code;
+                       asprintf(&code, "%s", $1->code);
+                       $$->code = code;
+                      }
 | shift_expression SHL additive_expression {}
 | shift_expression SHR additive_expression {}
 ;
 
 primary_expression
-: IDENTIFIER {}
+: IDENTIFIER {struct expr *e = find_list(tab_symbol, $1);
+              if(e == NULL){
+                couleur("31");
+                printf("Erreur : ");
+                couleur("0");
+                printf("Variable \"%s\" inconnue à la ligne %d\n", $1, yylineno);
+                return 1;
+              }
+              $$ = e;
+              char *code;
+              asprintf(&code, "%s* %%%s", name_of_type(e->t->tb),$1);
+              $$->code = code;
+             }
 | CONSTANTI {
               $$=new_expr();
               $$->var=new_var();
               $$->t=new_type(TYPE_INT);
               char *code;
+              char *nom;
+              asprintf(&nom, "%%x%d", $$->var);
               asprintf(&code, "%%x%d = add i32 0, %d \n",$$->var, $1);
+              add_list(tab_symbol, $$, nom);
               $$->code = code;
             }
 | CONSTANTD {
@@ -72,7 +105,10 @@ primary_expression
               $$->var=new_var();
               $$->t=new_type(TYPE_DOUBLE);
               char *code;
+              char *nom;
+              asprintf(&nom, "%%x%d", $$->var);
               asprintf(&code, "%%x%d = fadd double %s, %s \n",$$->var, double_to_hex_str(0.0), double_to_hex_str($1));
+              add_list(tab_symbol, $$, nom);
               $$->code = code;
             }
 | '(' expression ')' {}
@@ -81,7 +117,11 @@ primary_expression
 ;
 
 postfix_expression
-: primary_expression {}
+: primary_expression {$$ = new_expr();
+                      char *code;
+                      asprintf(&code, "%s", $1->code);
+                      $$->code = code;
+                     }
 | postfix_expression INC_OP {}
 | postfix_expression DEC_OP {}
 ;
@@ -92,7 +132,11 @@ argument_expression_list
 ;
 
 unary_expression
-: postfix_expression {}
+: postfix_expression {$$ = new_expr();
+                      char *code;
+                      asprintf(&code, "%s", $1->code);
+                      $$->code = code;
+                     }
 | INC_OP unary_expression {}
 | DEC_OP unary_expression {}
 | unary_operator unary_expression {}
@@ -103,20 +147,35 @@ unary_operator
 ;
 
 multiplicative_expression
-: unary_expression {}
+: unary_expression {$$ = new_expr();
+                    char *code;
+                    asprintf(&code, "%s", $1->code);
+                    printf("a : %s\n", code);
+                    $$->code = code;
+                   }
 | multiplicative_expression '*' unary_expression {}
 | multiplicative_expression '/' unary_expression {}
 | multiplicative_expression REM unary_expression {}
 ;
 
 additive_expression
-: multiplicative_expression {}
-| additive_expression '+' multiplicative_expression {}
+: multiplicative_expression {$$ = new_expr();
+                             char *code;
+                             asprintf(&code, "%s", $1->code);
+                             $$->code = code;
+                            }
+| additive_expression '+' multiplicative_expression {$$ = new_expr();
+                                                     printf("1 : %s %s\n", $1->code, $3->code);
+                                                    }
 | additive_expression '-' multiplicative_expression {}
 ;
 
 comparison_expression
-: shift_expression {}
+: shift_expression {$$ = new_expr();
+                    char *code;
+                    asprintf(&code, "%s", $1->code);
+                    $$->code = code;
+                   }
 | comparison_expression '<' shift_expression {}
 | comparison_expression '>' shift_expression {}
 | comparison_expression LE_OP shift_expression {}
@@ -126,15 +185,24 @@ comparison_expression
 ;
 
 expression
-: unary_expression assignment_operator conditional_expression {}
+: unary_expression assignment_operator conditional_expression 
+{printf("ok\n");$$ = new_expr();
+char *code;
+char * nom0;
+asprintf(&nom0, "%%x%d", $3->var);
+struct expr *cst0 = find_list(tab_symbol, nom0);
+asprintf(&code, "%s%s %%x%d %s, %s\n", $3->code, $2->code, $3->var, name_of_type(cst0->t->tb), $1->code);
+$$->code = code;
+}
 | conditional_expression {}
 ;
 
 assignment_operator
-: '=' {couleur("31");
-       fprintf (stdout, "Erreur: Variable inconnue \"%s\" à la ligne %d\n", $$, yylineno);
-       couleur("0");
-       return 1;}
+: '=' {$$ = new_expr();
+       char *code;
+       asprintf(&code, "store");
+       $$->code = code;
+       }
 | MUL_ASSIGN {}
 | DIV_ASSIGN {}
 | REM_ASSIGN {}
@@ -145,14 +213,35 @@ assignment_operator
 ;
 
 declaration
-: type_name declarator_list ';' {}
+: type_name declarator_list ';' {$$ = new_expr();
+                                 char code[1024] = "";
+                                 char *list;
+                                 struct expr *e;
+                                 char *tab[strlen($2->code)];
+                                 int nb_var = list_of_variable($2->code, tab);
+                                 for(int i = 0; i < nb_var; i++){
+                                    asprintf(&list, "%%%s = alloca %s\n", tab[i], $1->code);
+                                    e = find_list(tab_symbol, tab[i]);
+                                    e->t = new_type(type_of_name($1->code));
+                                    strcat(code, list);
+                                 }
+                                 $$->code = code;
+                                 }
 ;
 
 declarator_list
-: declarator {}
-| declarator_list ',' declarator {}
+: declarator {$$ = new_expr();
+              char *code;
+              asprintf(&code, "%s", $1->code);
+              $$->code = code;
+             }
+| declarator_list ',' declarator {$$ = new_expr();
+              char *code;
+              asprintf(&code, "%s %s", $1->code, $3->code);
+              $$->code = code;}
 ;
 
+<<<<<<< HEAD
 type_name   //On met dans $$ le type. Ainsi on peut le retrouver lorsqu'on remonte dans la grammaire (ex: ligne 48)
 : VOID {
               $$=new_expr();
@@ -163,13 +252,54 @@ type_name   //On met dans $$ le type. Ainsi on peut le retrouver lorsqu'on remon
 | DOUBLE {
               $$=new_expr();
               $$->t=new_type(TYPE_DOUBLE);}
+=======
+type_name
+: VOID {$$ = new_expr();
+       $$->t = new_type(TYPE_VOID);
+       char *code;
+       asprintf(&code, "void");
+       $$->code = code;
+       }
+| INT {$$ = new_expr();
+       $$->t = new_type(TYPE_INT);
+       char *code;
+       asprintf(&code, "i32");
+       $$->code = code;
+      }
+| DOUBLE {$$ = new_expr();
+          $$->t = new_type(TYPE_DOUBLE);
+          char *code;
+          asprintf(&code, "double");
+          $$->code = code;
+         }
+>>>>>>> 88083c5a7be709951662bb6ae16ad8fdf38e6163
 ;
 
 declarator
-: IDENTIFIER {} //ajouter dans la table de hachage(table des symboles) le nom de la variable $1 (=IDENTIFIER)
+: IDENTIFIER {if(find_list(tab_symbol, $1) != NULL){
+                couleur("31");
+                printf("Erreur : ");
+                couleur("0");
+                printf("Variable \"%s\" redéfinie à la ligne %d\n", $1, yylineno);
+                return 1;
+              }
+              $$ = new_expr();
+              char *code;
+              asprintf(&code, "%s",$1);
+              $$->code = code;
+              add_list(tab_symbol, new_expr(), $1);
+              } //ajouter dans la table de hachage(table des symboles) le nom de la variable $1 (=IDENTIFIER)
 | '(' declarator ')' {}
 | declarator '(' parameter_list ')' {}
+<<<<<<< HEAD
 | declarator '(' ')' {} 
+=======
+| declarator '(' ')' {$$ = new_expr();
+                      char *code;
+                      asprintf(&code, "%s()", $1->code);
+                      $$->code = code;
+                     }
+>>>>>>> 88083c5a7be709951662bb6ae16ad8fdf38e6163
 ;
 
 parameter_list
@@ -182,33 +312,90 @@ parameter_declaration
 ;
 
 statement
-: compound_statement {}
-| expression_statement {}
-| selection_statement {}
-| iteration_statement {}
-| jump_statement {}
+: compound_statement {$$ = new_expr();
+                      char *code;
+                      asprintf(&code, "%s", $1->code);
+                      $$->code = code;
+                     }
+| expression_statement {$$ = new_expr();
+                        char *code;
+                        asprintf(&code, "%s", $1->code);
+                        $$->code = code;
+                       }
+| selection_statement {$$ = new_expr();
+                       char *code;
+                       asprintf(&code, "%s", $1->code);
+                       $$->code = code;
+                      }
+| iteration_statement {$$ = new_expr();
+                       char *code;
+                       asprintf(&code, "%s", $1->code);
+                       $$->code = code;
+                      }
+| jump_statement {$$ = new_expr();
+                  char *code;
+                  asprintf(&code, "%s", $1->code);
+                  $$->code = code;
+                 }
 ;
 
 compound_statement
-: '{' '}' {}
-| '{' statement_list '}' {}
-| '{' declaration_list statement_list '}' {}
-| '{' declaration_list '}' {}
+: '{' '}' {new_element(tab_symbol);
+           delete_head(tab_symbol);
+          }
+| '{' statement_list '}' {new_element(tab_symbol);
+
+                          delete_head(tab_symbol);
+                          }
+| '{' declaration_list statement_list '}' {new_element(tab_symbol);
+                                           $$ = new_expr();
+                                           char *code;
+                                           asprintf(&code, "{\n%s%s\n}", $2->code, $3->code);
+                                           $$->code = code; 
+                                           delete_head(tab_symbol);
+                                          }
+| '{' declaration_list '}' {new_element(tab_symbol);
+                            $$ = new_expr();
+                            char *code;
+                            asprintf(&code, "{\n%s\n}", $2->code);
+                            $$->code = code;
+                            delete_head(tab_symbol);
+                           }
 ;
 
 declaration_list
-: declaration {}
-| declaration_list declaration {}
+: declaration {$$ = new_expr();
+               char *code;
+               asprintf(&code, "%s", $1->code);
+               $$->code = code;
+              }
+| declaration_list declaration {$$ = new_expr();
+                                char *code;
+                                asprintf(&code, "%s%s", $1->code, $2->code);
+                                $$->code = code;
+                               }
 ;
 
 statement_list
-: statement {}
-| statement_list statement {}
+: statement {$$ = new_expr();
+             char *code;
+             asprintf(&code, "%s", $1->code);
+             $$->code = code;
+            }
+| statement_list statement {$$ = new_expr();
+                            char *code;
+                            asprintf(&code, "%s%s", $1->code, $2->code);
+                            $$->code = code;
+                           }
 ;
 
 expression_statement
 : ';' {}
-| expression ';' {}
+| expression ';' {$$ = new_expr();
+                  char *code;
+                  asprintf(&code, "%s", $1->code);
+                  $$->code = code;
+                 }
 ;
 
 selection_statement
@@ -235,17 +422,22 @@ jump_statement
 ;
 
 program
-: external_declaration
-| program external_declaration
+: external_declaration 
+| program external_declaration 
 ;
 
 external_declaration
 : function_definition
-| declaration
+| declaration {}
 ;
 
 function_definition
-: type_name declarator compound_statement
+: type_name declarator compound_statement {$$ = new_expr();
+                                           char *code;
+                                           asprintf(&code, "define %s @%s %s", $1->code, $2->code, $3->code);
+                                           $$->code = code;
+                                           printf("code : %s\n", $$->code);
+                                          }
 ;
 
 %%
@@ -267,8 +459,9 @@ int yyerror (char *s) {
 
 
 int main (int argc, char *argv[]) {
-    FILE *input = NULL;
-    if (argc==2) {
+  tab_symbol = create_list();
+  FILE *input = NULL;
+  if (argc==2) {
 	input = fopen (argv[1], "r");
 	file_name = strdup (argv[1]);
 	if (input) {
@@ -285,5 +478,6 @@ int main (int argc, char *argv[]) {
     }
     yyparse ();
     free (file_name);
+    delete_list(tab_symbol);
     return 0;
 }

@@ -1,0 +1,3 @@
+void pile(){
+  int a;
+}
