@@ -50,4 +50,16 @@ int list_of_variable(char *src, char **dest){
 	return nb;
 }
 
+void del_carac(char *src, char old){
+	int flag = 0;
+	while(*src != '\0'){
+		if(*src == old){
+			flag = 1;
+		}
+		if(flag){
+			*src = *(src+1);
+		}
+		src++;
+	}
+}
 
