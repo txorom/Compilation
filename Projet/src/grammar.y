@@ -11,7 +11,7 @@
     extern int yylineno;
     int yylex ();
     int yyerror ();
-    struct element *tab_symbol;
+    struct list *tab_symbol;
 %}
 
 %token <string> IDENTIFIER
@@ -27,8 +27,8 @@
 %token INT DOUBLE VOID
 %token IF ELSE DO WHILE RETURN FOR
 %type <e> conditional_expression logical_or_expression logical_and_expression shift_expression primary_expression postfix_expression argument_expression_list unary_expression
-unary_operator multiplicative_expression additive_expression comparison_expression expression assignment_operator declaration declarator_list type_name declarator parameter_list parameter_declaration statement compound_statement declaration_list statement_list expression_statement selection_statement iteration_statement jump_statement program external_declaration function_definition
-%start program
+unary_operator multiplicative_expression additive_expression comparison_expression expression assignment_operator declaration declarator_list type_name declarator parameter_list parameter_declaration statement compound_statement declaration_list statement_list expression_statement selection_statement iteration_statement jump_statement main program external_declaration function_definition
+%start main
 %union {
   char *string;
   int i;
@@ -40,6 +40,7 @@ unary_operator multiplicative_expression additive_expression comparison_expressi
 conditional_expression
 : logical_or_expression {$$ = new_expr();
                          char *code;
+                         $$->var = $1->var;
                          asprintf(&code, "%s", $1->code);
                          $$->code = code;
                         }
@@ -48,6 +49,7 @@ conditional_expression
 logical_or_expression
 : logical_and_expression {$$ = new_expr();
                           char *code;
+                          $$->var = $1->var;
                           asprintf(&code, "%s", $1->code);
                           $$->code = code;
                           $$->t = new_type(TYPE_INT);
@@ -58,6 +60,7 @@ logical_or_expression
 logical_and_expression
 : comparison_expression {$$ = new_expr();
                          char *code;
+                         $$->var = $1->var;
                          asprintf(&code, "%s", $1->code);
                          $$->code = code;
                         }
@@ -68,6 +71,7 @@ logical_and_expression
 shift_expression
 : additive_expression {$$ = new_expr();
                        char *code;
+                       $$->var = $1->var;
                        asprintf(&code, "%s", $1->code);
                        $$->code = code;
                       }
@@ -118,6 +122,8 @@ primary_expression
 
 postfix_expression
 : primary_expression {$$ = new_expr();
+                      $$->t = new_type($1->t->tb);
+                      $$->var = $1->var;
                       char *code;
                       asprintf(&code, "%s", $1->code);
                       $$->code = code;
@@ -133,6 +139,8 @@ argument_expression_list
 
 unary_expression
 : postfix_expression {$$ = new_expr();
+                      $$->t = new_type($1->t->tb);
+                      $$->var = $1->var;
                       char *code;
                       asprintf(&code, "%s", $1->code);
                       $$->code = code;
@@ -148,9 +156,10 @@ unary_operator
 
 multiplicative_expression
 : unary_expression {$$ = new_expr();
+                    $$->t = new_type($1->t->tb);
+                    $$->var = $1->var;
                     char *code;
                     asprintf(&code, "%s", $1->code);
-                    printf("a : %s\n", code);
                     $$->code = code;
                    }
 | multiplicative_expression '*' unary_expression {}
@@ -160,12 +169,29 @@ multiplicative_expression
 
 additive_expression
 : multiplicative_expression {$$ = new_expr();
+                             $$->t = new_type($1->t->tb);
+                             $$->var = $1->var;
                              char *code;
                              asprintf(&code, "%s", $1->code);
                              $$->code = code;
                             }
 | additive_expression '+' multiplicative_expression {$$ = new_expr();
-                                                     printf("1 : %s %s\n", $1->code, $3->code);
+                                                     $$->t = new_type($1->t->tb);
+                                                     $1->var = new_var();
+                                                     char *code1;
+                                                     asprintf(&code1, "%%x%d = load %s, %s \n",$1->var, name_of_type($1->t->tb), $1->code);
+                                                     $3->var = new_var();
+                                                     char *code3;
+                                                     asprintf(&code3, "%%x%d = load %s, %s \n",$3->var, name_of_type($3->t->tb), $3->code);
+                                                     char *code4;
+                                                     $$->var = new_var();
+                                                     asprintf(&code4, "%%x%d = add %s %%x%d, %%x%d \n",$$->var, name_of_type($$->t->tb), $1->var, $3->var);
+                                                     char *code;  
+                                                     asprintf(&code, "%s%s%s", code1, code3, code4);
+                                                     $$->code = code;
+                                                     char *nom;
+                                                     asprintf(&nom, "%%x%d", $$->var);
+                                                     add_list(tab_symbol, $$, nom);
                                                     }
 | additive_expression '-' multiplicative_expression {}
 ;
@@ -173,6 +199,7 @@ additive_expression
 comparison_expression
 : shift_expression {$$ = new_expr();
                     char *code;
+                    $$->var = $1->var;
                     asprintf(&code, "%s", $1->code);
                     $$->code = code;
                    }
@@ -186,12 +213,12 @@ comparison_expression
 
 expression
 : unary_expression assignment_operator conditional_expression 
-{printf("ok\n");$$ = new_expr();
+{$$ = new_expr();
 char *code;
 char * nom0;
 asprintf(&nom0, "%%x%d", $3->var);
 struct expr *cst0 = find_list(tab_symbol, nom0);
-asprintf(&code, "%s%s %%x%d %s, %s\n", $3->code, $2->code, $3->var, name_of_type(cst0->t->tb), $1->code);
+asprintf(&code, "%s%s %s %%x%d, %s\n", $3->code, $2->code, name_of_type(cst0->t->tb), $3->var, $1->code);
 $$->code = code;
 }
 | conditional_expression {}
@@ -241,18 +268,6 @@ declarator_list
               $$->code = code;}
 ;
 
-<<<<<<< HEAD
-type_name   //On met dans $$ le type. Ainsi on peut le retrouver lorsqu'on remonte dans la grammaire (ex: ligne 48)
-: VOID {
-              $$=new_expr();
-              $$->t=new_type(TYPE_VOID);}
-| INT {
-              $$=new_expr();
-              $$->t=new_type(TYPE_INT);}
-| DOUBLE {
-              $$=new_expr();
-              $$->t=new_type(TYPE_DOUBLE);}
-=======
 type_name
 : VOID {$$ = new_expr();
        $$->t = new_type(TYPE_VOID);
@@ -272,7 +287,6 @@ type_name
           asprintf(&code, "double");
           $$->code = code;
          }
->>>>>>> 88083c5a7be709951662bb6ae16ad8fdf38e6163
 ;
 
 declarator
@@ -291,15 +305,12 @@ declarator
               } //ajouter dans la table de hachage(table des symboles) le nom de la variable $1 (=IDENTIFIER)
 | '(' declarator ')' {}
 | declarator '(' parameter_list ')' {}
-<<<<<<< HEAD
-| declarator '(' ')' {} 
-=======
 | declarator '(' ')' {$$ = new_expr();
                       char *code;
                       asprintf(&code, "%s()", $1->code);
                       $$->code = code;
                      }
->>>>>>> 88083c5a7be709951662bb6ae16ad8fdf38e6163
+
 ;
 
 parameter_list
@@ -418,17 +429,47 @@ iteration_statement
 
 jump_statement
 : RETURN ';' {}
-| RETURN expression ';' {}
+| RETURN expression ';' {del_carac($2->code, '*');
+                         $$ = new_expr();
+                         char *code;
+                         asprintf(&code, "ret %s", $2->code);
+                         $$->code = code;
+                        }
+;
+
+main
+: program {$$ = new_expr();
+           char *code;
+           asprintf(&code, "%s", $1->code);
+           $$->code = code;
+           printf("%s\n", code);
+          }
 ;
 
 program
-: external_declaration 
-| program external_declaration 
+: external_declaration {$$ = new_expr();
+                        char *code;
+                        asprintf(&code, "%s", $1->code);
+                        $$->code = code;
+                       }
+| program external_declaration {$$ = new_expr();
+                                char *code;
+                                asprintf(&code, "%s\n%s", $1->code, $2->code);
+                                $$->code = code;
+                                }
 ;
 
 external_declaration
-: function_definition
-| declaration {}
+: function_definition {$$ = new_expr();
+                       char *code;
+                       asprintf(&code, "%s", $1->code);
+                       $$->code = code;
+                       }
+| declaration {$$ = new_expr();
+               char *code;
+               asprintf(&code, "%s", $1->code);
+               $$->code = code;
+              }
 ;
 
 function_definition
@@ -436,7 +477,6 @@ function_definition
                                            char *code;
                                            asprintf(&code, "define %s @%s %s", $1->code, $2->code, $3->code);
                                            $$->code = code;
-                                           printf("code : %s\n", $$->code);
                                           }
 ;
 
