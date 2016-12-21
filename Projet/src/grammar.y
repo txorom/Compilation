@@ -153,17 +153,23 @@ declarator_list
 | declarator_list ',' declarator {}
 ;
 
-type_name
-: VOID {}
-| INT {}
-| DOUBLE {}
+type_name   //On met dans $$ le type. Ainsi on peut le retrouver lorsqu'on remonte dans la grammaire (ex: ligne 48)
+: VOID {
+              $$=new_expr();
+              $$->t=new_type(TYPE_VOID);}
+| INT {
+              $$=new_expr();
+              $$->t=new_type(TYPE_INT);}
+| DOUBLE {
+              $$=new_expr();
+              $$->t=new_type(TYPE_DOUBLE);}
 ;
 
 declarator
 : IDENTIFIER {} //ajouter dans la table de hachage(table des symboles) le nom de la variable $1 (=IDENTIFIER)
 | '(' declarator ')' {}
 | declarator '(' parameter_list ')' {}
-| declarator '(' ')' {}
+| declarator '(' ')' {} 
 ;
 
 parameter_list
