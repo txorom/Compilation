@@ -27,8 +27,8 @@
 %token INT DOUBLE VOID
 %token IF ELSE DO WHILE RETURN FOR
 %type <e> conditional_expression logical_or_expression logical_and_expression shift_expression primary_expression postfix_expression argument_expression_list unary_expression
-unary_operator multiplicative_expression additive_expression comparison_expression expression assignment_operator declaration declarator_list type_name declarator parameter_list parameter_declaration statement compound_statement declaration_list statement_list expression_statement selection_statement iteration_statement jump_statement program external_declaration function_definition
-%start program
+unary_operator multiplicative_expression additive_expression comparison_expression expression assignment_operator declaration declarator_list type_name declarator parameter_list parameter_declaration statement compound_statement declaration_list statement_list expression_statement selection_statement iteration_statement jump_statement main program external_declaration function_definition
+%start main
 %union {
   char *string;
   int i;
@@ -437,18 +437,25 @@ jump_statement
                         }
 ;
 
+main
+: program {$$ = new_expr();
+           char *code;
+           asprintf(&code, "%s", $1->code);
+           $$->code = code;
+           printf("%s\n", code);
+          }
+;
+
 program
 : external_declaration {$$ = new_expr();
                         char *code;
                         asprintf(&code, "%s", $1->code);
                         $$->code = code;
-                        printf("%s\n", code);
                        }
 | program external_declaration {$$ = new_expr();
                                 char *code;
                                 asprintf(&code, "%s\n%s", $1->code, $2->code);
                                 $$->code = code;
-                                printf("c : %s\n", code);
                                 }
 ;
 
