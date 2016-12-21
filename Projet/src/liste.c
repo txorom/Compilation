@@ -3,8 +3,8 @@
 
 #include "liste.h"
 
-struct liste* create_list(){
-  struct liste *new_l = malloc(sizeof(struct liste));
+struct list* create_list(){
+  struct list *new_l = malloc(sizeof(struct list));
   struct element *new_e = malloc(sizeof(struct element));
   new_e->tab = new_tab();
   new_e->next = NULL;
@@ -12,18 +12,18 @@ struct liste* create_list(){
   return new_l;
 }
 
-void new_element(struct liste *list){
+void new_element(struct list *list){
   struct element *new_e = malloc(sizeof(struct element));
   new_e->tab = new_tab();
   new_e->next = list->head;
   list->head = new_e;
 }
 
-int add_list(struct liste *list, struct expr *e, char *name){
+int add_list(struct list *list, struct expr *e, char *name){
   return add_tab(list->head->tab,e,name);
 }
 
-struct expr *find_list(struct liste *list, char *name){
+struct expr *find_list(struct list *list, char *name){
   struct element *current = list->head;
   while(current){
     struct expr *ret = find_tab(current->tab, name);
@@ -35,17 +35,17 @@ struct expr *find_list(struct liste *list, char *name){
   return NULL;
 }
 
-void delete_head(struct liste *list){
+void delete_head(struct list *list){
   struct element *new_head = list->head->next;
   delete_tab(list->head->tab);
   free(list->head);
   list->head = new_head;
 }
 
-void delete_list(struct liste *list){
+void delete_list(struct list *list){
    while(list->head){
     delete_head(list);
    }
    free(list);
-   list == NULL;
+   list = NULL;
 }

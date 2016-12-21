@@ -11,7 +11,7 @@
     extern int yylineno;
     int yylex ();
     int yyerror ();
-    struct element *tab_symbol;
+    struct list *tab_symbol;
 %}
 
 %token <string> IDENTIFIER
@@ -268,18 +268,6 @@ declarator_list
               $$->code = code;}
 ;
 
-<<<<<<< HEAD
-type_name   //On met dans $$ le type. Ainsi on peut le retrouver lorsqu'on remonte dans la grammaire (ex: ligne 48)
-: VOID {
-              $$=new_expr();
-              $$->t=new_type(TYPE_VOID);}
-| INT {
-              $$=new_expr();
-              $$->t=new_type(TYPE_INT);}
-| DOUBLE {
-              $$=new_expr();
-              $$->t=new_type(TYPE_DOUBLE);}
-=======
 type_name
 : VOID {$$ = new_expr();
        $$->t = new_type(TYPE_VOID);
@@ -299,7 +287,6 @@ type_name
           asprintf(&code, "double");
           $$->code = code;
          }
->>>>>>> 88083c5a7be709951662bb6ae16ad8fdf38e6163
 ;
 
 declarator
@@ -318,15 +305,12 @@ declarator
               } //ajouter dans la table de hachage(table des symboles) le nom de la variable $1 (=IDENTIFIER)
 | '(' declarator ')' {}
 | declarator '(' parameter_list ')' {}
-<<<<<<< HEAD
-| declarator '(' ')' {} 
-=======
 | declarator '(' ')' {$$ = new_expr();
                       char *code;
                       asprintf(&code, "%s()", $1->code);
                       $$->code = code;
                      }
->>>>>>> 88083c5a7be709951662bb6ae16ad8fdf38e6163
+
 ;
 
 parameter_list
