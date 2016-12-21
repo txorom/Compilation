@@ -46,9 +46,4 @@ void delete_list(struct list *list){
    while(list->head){
     delete_head(list);
    }
-   free(list);
-<<<<<<< HEAD
-=======
-   list = NULL;
->>>>>>> f04a4a00f4601aa6b9e43d16b694959891a0dfa7
 }
