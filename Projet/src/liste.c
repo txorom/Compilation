@@ -47,5 +47,4 @@ void delete_list(struct liste *list){
     delete_head(list);
    }
    free(list);
-   list == NULL;
 }
