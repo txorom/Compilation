@@ -8,7 +8,6 @@ struct element{
   struct element *next;
 };
 
-<<<<<<< HEAD
 struct element* create_list();
 void new_element(struct element *list);
 struct element *head(struct element *e);
