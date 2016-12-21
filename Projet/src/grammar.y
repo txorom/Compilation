@@ -446,8 +446,9 @@ program
                        }
 | program external_declaration {$$ = new_expr();
                                 char *code;
-                                asprintf(&code, "%s%s", $1->code, $2->code);
+                                asprintf(&code, "%s\n%s", $1->code, $2->code);
                                 $$->code = code;
+                                printf("c : %s\n", code);
                                 }
 ;
 
@@ -469,7 +470,6 @@ function_definition
                                            char *code;
                                            asprintf(&code, "define %s @%s %s", $1->code, $2->code, $3->code);
                                            $$->code = code;
-                                           printf("code : %s\n", $$->code);
                                           }
 ;
 

@@ -5,3 +5,9 @@ int pile(){
   c = a + b;
   return c;
 }
+
+int pil(){
+  int d;
+  d = 4;
+  return d;
+}
