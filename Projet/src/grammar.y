@@ -12,6 +12,9 @@
     int yylex ();
     int yyerror ();
     struct list *tab_symbol;
+    char *CODE;
+    int error = 0;
+    int create = 1;
 %}
 
 %token <string> IDENTIFIER
@@ -82,6 +85,7 @@ shift_expression
 primary_expression
 : IDENTIFIER {struct expr *e = find_list(tab_symbol, $1);
               if(e == NULL){
+                error ++;
                 couleur("31");
                 printf("Erreur : ");
                 couleur("0");
@@ -291,11 +295,16 @@ type_name
 
 declarator
 : IDENTIFIER {if(find_list(tab_symbol, $1) != NULL){
+                error++;
                 couleur("31");
                 printf("Erreur : ");
                 couleur("0");
                 printf("Variable \"%s\" redéfinie à la ligne %d\n", $1, yylineno);
                 return 1;
+              }
+              if(create){
+                new_element(tab_symbol);
+                create = 0;
               }
               $$ = new_expr();
               char *code;
@@ -323,10 +332,10 @@ parameter_declaration
 ;
 
 statement
-: compound_statement {$$ = new_expr();
+: compound_statement {new_element(tab_symbol);$$ = new_expr();
                       char *code;
                       asprintf(&code, "%s", $1->code);
-                      $$->code = code;
+                      $$->code = code;delete_head(tab_symbol);
                      }
 | expression_statement {$$ = new_expr();
                         char *code;
@@ -351,26 +360,21 @@ statement
 ;
 
 compound_statement
-: '{' '}' {new_element(tab_symbol);
-           delete_head(tab_symbol);
+: '{' '}' {
           }
-| '{' statement_list '}' {new_element(tab_symbol);
-
-                          delete_head(tab_symbol);
+| '{' statement_list '}' {
                           }
-| '{' declaration_list statement_list '}' {new_element(tab_symbol);
+| '{' declaration_list statement_list '}' {
                                            $$ = new_expr();
                                            char *code;
                                            asprintf(&code, "{\n%s%s\n}", $2->code, $3->code);
-                                           $$->code = code; 
-                                           delete_head(tab_symbol);
+                                           $$->code = code;
+                                           
                                           }
-| '{' declaration_list '}' {new_element(tab_symbol);
-                            $$ = new_expr();
+| '{' declaration_list '}' {$$ = new_expr();
                             char *code;
                             asprintf(&code, "{\n%s\n}", $2->code);
                             $$->code = code;
-                            delete_head(tab_symbol);
                            }
 ;
 
@@ -442,7 +446,9 @@ main
            char *code;
            asprintf(&code, "%s", $1->code);
            $$->code = code;
-           printf("%s\n", code);
+           CODE = malloc(sizeof(char) * strlen(code));
+           strcpy(CODE, code);
+           printf("%s\n", CODE);
           }
 ;
 
@@ -463,7 +469,7 @@ external_declaration
 : function_definition {$$ = new_expr();
                        char *code;
                        asprintf(&code, "%s", $1->code);
-                       $$->code = code;
+                       $$->code = code;                       
                        }
 | declaration {$$ = new_expr();
                char *code;
@@ -473,10 +479,12 @@ external_declaration
 ;
 
 function_definition
-: type_name declarator compound_statement {$$ = new_expr();
+: type_name declarator compound_statement {create = 1;
+                                           $$ = new_expr();
                                            char *code;
                                            asprintf(&code, "define %s @%s %s", $1->code, $2->code, $3->code);
                                            $$->code = code;
+                                           delete_head(tab_symbol);
                                           }
 ;
 
@@ -517,7 +525,14 @@ int main (int argc, char *argv[]) {
 	return 1;
     }
     yyparse ();
+    if(error == 0){
+      char *nom = change_file_ll(file_name);
+      FILE *fd = fopen(nom, "w+");
+      fwrite(CODE, sizeof(char), strlen(CODE), fd);
+      fclose(fd);
+      free(nom);
+    }
     free (file_name);
-    delete_list(tab_symbol);
+    //delete_list(tab_symbol);
     return 0;
 }

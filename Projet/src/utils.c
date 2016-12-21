@@ -63,3 +63,12 @@ void del_carac(char *src, char old){
 	}
 }
 
+char * change_file_ll(char *src){
+	int n = strlen(src);
+	char *new = malloc(sizeof(char) * n + 2);
+	strcpy(new, src);
+	*(new+n-1) = 'l';
+	*(new+n) = 'l';
+	*(new+n+1) = '\0';
+	return new;
+}

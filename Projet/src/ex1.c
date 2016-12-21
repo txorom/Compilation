@@ -7,7 +7,7 @@ int pile(){
 }
 
 int pil(){
-  int d;
-  d = 4;
-  return d;
+  int a;
+  a = 4;
+  return a;
 }
