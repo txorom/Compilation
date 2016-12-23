@@ -88,7 +88,7 @@ shift_expression
 ;
 
 primary_expression
-: IDENTIFIER {printf("primary_expression -> IDENTIFIER \n");
+: IDENTIFIER {printf("primary_expression -> IDENTIFIER (%s)\n", $1);
               struct expr *e = find_list(tab_symbol, $1);
               if(e == NULL){
                 error ++;
@@ -103,7 +103,7 @@ primary_expression
               asprintf(&code, "%s* %%%s", name_of_type(e->t->tb),$1);
               $$->code = code;
              }
-| CONSTANTI {printf("primary_expression -> CONSTANTI \n");
+| CONSTANTI {printf("primary_expression -> CONSTANTI (%d)\n", $1);
               $$=new_expr();
               $$->var=new_var();
               $$->t=new_type(TYPE_INT);
@@ -114,7 +114,7 @@ primary_expression
               add_list(tab_symbol, $$, nom);
               $$->code = code;
             }
-| CONSTANTD {printf("primary_expression -> CONSTANTD \n");
+| CONSTANTD {printf("primary_expression -> CONSTANTD (%f)\n", $1);
               $$=new_expr();
               $$->var=new_var();
               $$->t=new_type(TYPE_DOUBLE);
@@ -195,15 +195,35 @@ additive_expression
 | additive_expression '+' multiplicative_expression {printf("additive_expression ->  additive_expression '+' multiplicative_expression \n");
                                                      $$ = new_expr();
                                                      $$->t = new_type($1->t->tb);
-                                                     $1->var = new_var();
                                                      char *code1;
-                                                     asprintf(&code1, "%%x%d = load %s, %s \n",$1->var, name_of_type($1->t->tb), $1->code);
-                                                     $3->var = new_var();
+                                                     int var1, var2;
+                                                     if($1->code[0] == '%'){//Une constante
+                                                      var1 = $1->var;
+                                                      asprintf(&code1, "%s", $1->code);                      
+                                                     }
+                                                     else{
+                                                      var1 = new_var();
+                                                      asprintf(&code1, "%%x%d = load %s, %s \n",var1, name_of_type($1->t->tb), $1->code);
+                                                    }
                                                      char *code3;
-                                                     asprintf(&code3, "%%x%d = load %s, %s \n",$3->var, name_of_type($3->t->tb), $3->code);
+                                                     if($3->code[0] == '%'){//Une constante
+                                                      var2 = $3->var;
+                                                      printf("%d %s\n", $3->var, $3->code);
+                                                      asprintf(&code3, "%s", $3->code);                      
+                                                     }
+                                                     else{
+                                                      var2 = new_var();
+                                                      asprintf(&code3, "%%x%d = load %s, %s \n", var2, name_of_type($3->t->tb), $3->code);
+                                                    }
                                                      char *code4;
                                                      $$->var = new_var();
-                                                     asprintf(&code4, "%%x%d = add %s %%x%d, %%x%d \n",$$->var, name_of_type($$->t->tb), $1->var, $3->var);
+                                                     char *symbole_add;
+                                                     if($$->t->tb == TYPE_INT){
+                                                        symbole_add = "add";
+                                                     }
+                                                     else
+                                                      symbole_add = "fadd";
+                                                     asprintf(&code4, "%%x%d = %s %s %%x%d, %%x%d \n",$$->var, symbole_add, name_of_type($$->t->tb), var1, var2);
                                                      char *code;  
                                                      asprintf(&code, "%s%s%s", code1, code3, code4);
                                                      $$->code = code;
@@ -319,7 +339,7 @@ type_name
 ;
 
 declarator
-: IDENTIFIER {printf("declarator -> IDENTIFIER \n");
+: IDENTIFIER {printf("declarator -> IDENTIFIER (%s)\n", $1);
               if(find_list(tab_symbol, $1) != NULL){
                 error++;
                 couleur("31");

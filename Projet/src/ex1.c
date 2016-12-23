@@ -1,7 +1,6 @@
-int pile(){
-  int a, b, c;
-  a = 3;
-  b = 4;
-  c = a + b;
-  return c;
+void pile(){
+  double a, b;
+  a = 5.0;
+  b = a + 3.0;
+  //return c;
 }
