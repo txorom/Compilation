@@ -14,7 +14,7 @@ char* new_label(){
   static int i=0;
   i++;
   char *name;
-  asprintf(&name, "label%d :", i);
+  asprintf(&name, "label%d", i);
   return name;
 }
 

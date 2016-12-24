@@ -13,6 +13,7 @@
     int yyerror ();
     struct list *tab_symbol;
     char *CODE;
+    char alloc_param[1024] = "";
     int error = 0;
     int create = 1;
 %}
@@ -101,11 +102,11 @@ primary_expression
                 return 1;
               }
               $$ = new_expr();
-	      $$->var = new_var();
-	      $$->t = e->t;
-	      char *code;
-	      asprintf(&code, "%%x%d = load %s, %s* %%%s\n", $$->var, name_of_type($$->t->tb), name_of_type($$->t->tb), $1);
-	      $$->code = code;
+      	      $$->var = new_var();
+      	      $$->t = e->t;
+      	      char *code;
+      	      asprintf(&code, "%%x%d = load %s, %s* %%%s\n", $$->var, name_of_type($$->t->tb), name_of_type($$->t->tb), e->name);
+              $$->code = code;
               }
 | CONSTANTI {printf("primary_expression -> CONSTANTI (%d)\n", $1);
               $$=new_expr();
@@ -250,8 +251,15 @@ comparison_expression
                     asprintf(&code, "%s", $1->code);
                     $$->code = code;*/
                    }
-| comparison_expression '<' shift_expression {printf("comparison_expression -> comparison_expression '<' shift_expression \n");}
-| comparison_expression '>' shift_expression {printf("comparison_expression -> comparison_expression '>' shift_expression \n");}
+| comparison_expression '<' shift_expression {printf("comparison_expression -> comparison_expression '<' shift_expression \n");
+                                              
+                                             }
+| comparison_expression '>' shift_expression {printf("comparison_expression -> comparison_expression '>' shift_expression \n");
+                                              $$ = new_expr();
+                                              char *code;
+                                              asprintf(&code, "%s%sicmp sgt %s %%x%d, %%x%d\n", $1->code, $3->code, name_of_type($1->t->tb), $1->var, $3->var);
+                                              $$->code = code;
+                                             }
 | comparison_expression LE_OP shift_expression {printf("comparison_expression -> comparison_expression LE_OP shift_expression \n");}
 | comparison_expression GE_OP shift_expression {printf("comparison_expression -> comparison_expression GE_OP shift_expression \n");}
 | comparison_expression EQ_OP shift_expression {printf("comparison_expression -> comparison_expression EQ_OP shift_expression  \n");}
@@ -293,22 +301,22 @@ assignment_operator
 declaration
 : type_name declarator_list ';' {printf("declaration -> type_name declarator_list ';' \n");
                                  $$ = new_expr();
-				 char *code1;
-				 asprintf(&code1, "");
-				 $$->code = code1;
+                        				 char *code1;
+                        				 asprintf(&code1, "");
+                        				 $$->code = code1;
                                  char code[1024] = "";
                                  char *list;
                                  struct expr *e;
                                  char *tab[strlen($2->code)];
                                  int nb_var = list_of_variable($2->code, tab);
-				 char *code_expr[nb_var];
+				                         char *code_expr[nb_var];
                                  for(int i = 0; i < nb_var; i++){
-				    asprintf(&list, "%%%s = alloca %s\n", tab[i], $1->code);
+				                            asprintf(&list, "%%%s = alloca %s\n", tab[i], $1->code);
                                     e = find_list(tab_symbol, tab[i]);
                                     e->t = new_type(type_of_name($1->code));
-				    e->var = new_var();
-				    asprintf(&code_expr[i], "");
-				    e->code = code_expr[i];
+                        				    e->var = new_var();
+                        				    asprintf(&code_expr[i], "");
+				                            e->code = code_expr[i];
                                     strcat(code, list);
                                  }
                                  $$->code = code;
@@ -356,7 +364,7 @@ type_name
 
 declarator
 : IDENTIFIER {printf("declarator -> IDENTIFIER (%s)\n", $1);
-              if(find_list(tab_symbol, $1) != NULL){
+              if(find_tab(tab_symbol->head->tab, $1) != NULL){
                 error++;
                 couleur("31");
                 printf("Erreur : ");
@@ -368,16 +376,22 @@ declarator
                 new_element(tab_symbol);
                 create = 0;
               }
-	      struct expr* e = new_expr();
-	      //e->var = new_var();
+	            struct expr* e = new_expr();
+	            //e->var = new_var();
               char *code;
               asprintf(&code, "%s",$1);
               e->code = code;
+              e->name = code;
               add_list(tab_symbol, e, $1);
-	      $$ = e;
+	            $$ = e;
               } //ajouter dans la table de hachage(table des symboles) le nom de la variable $1 (=IDENTIFIER)
 | '(' declarator ')' {printf("declarator -> '(' declarator ')' \n");}
-| declarator '(' parameter_list ')' {printf("declarator -> declarator '(' parameter_list ')' \n");}
+| declarator '(' parameter_list ')' {printf("declarator -> declarator '(' parameter_list ')' \n");
+                                     $$ = new_expr();
+                                     char *code;
+                                     asprintf(&code, "%s(%s)", $1->code, $3->code);
+                                     $$->code = code;
+                                    }
 | declarator '(' ')' {printf("declarator -> declarator '(' ')' \n");
                       $$ = new_expr();
                       char *code;
@@ -388,12 +402,32 @@ declarator
 ;
 
 parameter_list
-: parameter_declaration {printf("parameter_list -> parameter_declaration \n");}
-| parameter_list ',' parameter_declaration {printf("parameter_list -> parameter_list ',' parameter_declaration \n");}
+: parameter_declaration {printf("parameter_list -> parameter_declaration \n"); 
+                         $$ = $1;
+                        }
+| parameter_list ',' parameter_declaration {printf("parameter_list -> parameter_list ',' parameter_declaration \n");
+                                            $$ = new_expr();
+                                            char *code;
+                                            asprintf(&code, "%s %s", $1->code, $3->code);
+                                            $$->code = code;
+                                           }
 ;
 
 parameter_declaration
-: type_name declarator {printf("parameter_declaration -> type_name declarator  \n");}
+: type_name declarator {printf("parameter_declaration -> type_name declarator  \n");
+                        $$ = new_expr();
+                        char *code;
+                        char *name;
+                        char *alloc;
+                        asprintf(&name, "%s", $2->code);
+                        asprintf(&code, "%s %%%s", $1->code, $2->code);
+                        struct expr *e = find_list(tab_symbol, $2->code);
+                        e->t = new_type(type_of_name($1->code));
+                        strcat(e->name, ".addr");
+                        asprintf(&alloc, "%%%s = alloca %s\nstore %s %%%s, %s* %%%s\n", e->name, name_of_type(e->t->tb), name_of_type(e->t->tb), name, name_of_type(e->t->tb), e->name);
+                        strcat(alloc_param, alloc);
+                        $$->code = code;
+                       }
 ;
 
 statement
@@ -407,11 +441,13 @@ statement
 		      delete_head(tab_symbol);
                      }
 | expression_statement {printf("statement -> expression_statement \n");
+                        new_element(tab_symbol);
                         $$ = $1;
                         /*$$ = new_expr();
                         char *code;
                         asprintf(&code, "%s", $1->code);
                         $$->code = code;*/
+                        delete_head(tab_symbol);
                        }
 | selection_statement {printf("statement -> selection_statement \n");
                        $$ = $1;
@@ -438,18 +474,23 @@ statement
 
 compound_statement
 : '{' '}' {printf("compound_statement -> '{' '}' \n");}
-| '{' statement_list '}' {printf("compound_statement -> '{' statement_list '}' \n");}
+| '{' statement_list '}' {printf("compound_statement -> '{' statement_list '}' \n");
+                          $$ = new_expr();
+                          char *code;
+                          asprintf(&code, "%s%s", alloc_param, $2->code);
+                          $$->code = code;
+                          }
 | '{' declaration_list statement_list '}' {printf("compound_statement -> '{' declaration_list statement_list '}' \n");
                                            $$ = new_expr();
                                            char *code;
-                                           asprintf(&code, "{\n%s%s\n}", $2->code, $3->code);
+                                           asprintf(&code, "%s%s%s", alloc_param, $2->code, $3->code);
                                            $$->code = code;
                                            
                                           }
 | '{' declaration_list '}' {printf("compound_statement -> '{' declaration_list '}' \n");
                             $$ = new_expr();
                             char *code;
-                            asprintf(&code, "{\n%s\n}", $2->code);
+                            asprintf(&code, "%s%s", alloc_param, $2->code);
                             $$->code = code;
                            }
 ;
@@ -497,7 +538,16 @@ expression_statement
 
 selection_statement
 : IF '(' expression ')' statement {printf("selection_statement -> IF '(' expression ')' statement \n");}
-| IF '(' expression ')' statement ELSE statement {printf("selection_statement -> IF '(' expression ')' statement ELSE statement \n");}
+| IF '(' expression ')' statement ELSE statement {printf("selection_statement -> IF '(' expression ')' statement ELSE statement \n");
+                                                  $$ = new_expr();
+                                                  char *code;
+                                                  char *label_if = new_label();
+                                                  char *label_else = new_label();
+                                                  char *label_end = new_label();
+                                                  asprintf(&code, "%sbr i1 %%x%d, label %%%s, label %%%s\n\n%s:\n%sbr label %%%s\n\n%s:\n%sbr label %%%s\n\n%s:\n", $3->code, $3->var, label_if, label_else, label_if, $5->code, label_end, label_else, $7->code, label_end, label_end);
+                                                  printf("%s\n", code);
+                                                  $$->code = code;
+                                                 }
 | FOR '(' expression ';' expression ';' expression ')' statement {printf("selection_statement -> FOR '(' expression ';' expression ';' expression ')' statement \n");}
 | FOR '(' expression ';' expression ';'            ')' statement {printf("selection_statement -> FOR '(' expression ';' expression ';'            ')' statement \n");}
 | FOR '(' expression ';'            ';' expression ')' statement {printf("selection_statement -> FOR '(' expression ';'            ';' expression ')' statement \n");}
@@ -516,10 +566,9 @@ iteration_statement
 jump_statement
 : RETURN ';' {printf("jump_statement -> RETURN ';' \n");}
 | RETURN expression ';' {printf("jump_statement -> RETURN expression ';' \n");
-                         del_carac($2->code, '*');
                          $$ = new_expr();
                          char *code;
-                         asprintf(&code, "ret %s", $2->code);
+                         asprintf(&code, "%sret %s %%x%d", $2->code, name_of_type($2->t->tb), $2->var);
                          $$->code = code;
                         }
 ;
@@ -571,7 +620,7 @@ function_definition
                                            create = 1;
                                            $$ = new_expr();
                                            char *code;
-					   asprintf(&code, "define %s @%s %s", $1->code, $2->code, $3->code);
+					                                 asprintf(&code, "define %s @%s {\n%s\n}", $1->code, $2->code, $3->code);
                                            $$->code = code;
                                            delete_head(tab_symbol);
                                           }

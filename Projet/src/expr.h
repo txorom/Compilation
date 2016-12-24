@@ -7,6 +7,7 @@
 struct expr{
     char *code;
     int var;
+    char *name;
     struct type *t;
 };
 struct expr * new_expr();

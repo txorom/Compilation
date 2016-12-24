@@ -1,6 +1,12 @@
-void pile(){
-  double a, b;
-  a = 5.0;
-  b = a + 3.0;
-  //return c;
-}
+int pile(int x){
+	int a;
+	a = 2;
+	if (x > 0) {
+		int a;
+		a = 1;
+	} else {
+		x = 2;
+	}
+
+	return x;
+	}
