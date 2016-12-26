@@ -41,6 +41,12 @@ struct expr *find_tab(struct tab_hach *tab, char *name){
 		return NULL;
 }
 
+void delete_element(struct tab_hach *tab, char *name){
+	int hach = fn_hachage(name);
+	free(tab->tab[hach]);
+	tab->tab[hach] = NULL;
+}
+
 void delete_tab(struct tab_hach *tab){
 	for(int i =0; i<SIZE; i++)
 		if(tab->tab[i] != NULL)

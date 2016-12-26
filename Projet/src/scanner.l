@@ -2,8 +2,10 @@
 #include <stdio.h>
 #include <string.h>
 #include "grammar.tab.h"
+#include "liste.h"
 void count();
 int comment ();
+struct list *tab_symbol;
 %}
 D[0-9]
 L[a-zA-Z_]
@@ -29,6 +31,7 @@ L[a-zA-Z_]
 "/="		{ count(); return(DIV_ASSIGN); }
 "<<="		{ count(); return(SHL_ASSIGN); }
 ">>="		{ count(); return(SHR_ASSIGN); }
+"%="		{ count(); return(REM_ASSIGN); }
 "++"		{ count(); return(INC_OP); }
 "--"		{ count(); return(DEC_OP); }
 "<="		{ count(); return(LE_OP); }
@@ -36,8 +39,8 @@ L[a-zA-Z_]
 "=="		{ count(); return(EQ_OP); }
 "!="		{ count(); return(NE_OP); }
 ";"		{ count(); return(';'); }
-"{"      	{ count(); return('{'); }
-"}"      	{ count(); return('}'); }
+"{"      	{ count(); new_element(tab_symbol);return('{'); }
+"}"      	{ count(); delete_head(tab_symbol);return('}'); }
 ","		{ count(); return(','); }
 "/"		{ count(); return('/'); }
 "="		{ count(); return('='); }

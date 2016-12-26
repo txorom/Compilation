@@ -25,6 +25,9 @@ char *double_to_hex_str(double d){
 		long long int b;
 	} u;
 	u.a = d;
+	if(d == 0.0){
+		return "0x00000000";
+	}
 	asprintf(&s, "%#08llx", u.b);
 	return s;
 }
@@ -51,6 +54,41 @@ int list_of_variable(char *src, char **dest){
 	return nb;
 }
 
+int list_of_args(char *src, char **dest){
+	int nb = 0;
+	int i = 0;
+	char buf[1024];
+	while(*src != '\0'){
+		dest = realloc(dest, sizeof(char) * (nb + 1));
+		i = 0;
+		src ++;
+		while(*src != ' '){
+			buf[i] = *src;
+			i++;
+			src ++;
+		}
+		buf[i] = '\0';
+		dest[nb] = malloc(sizeof(char) * strlen(buf));
+		strcpy(dest[nb], buf);
+		nb++;
+		while(*src != '\n'){
+			src ++;
+		}
+		src ++;
+	}
+	return nb;
+}
+
+void name_of_function(char *src, char *dest){
+	int i = 0;
+	while(*src != '('){
+		dest[i] = *src;
+		i++;
+		src ++;
+	}
+	dest[i] = '\0';
+}
+
 void del_carac(char *src, char old){
 	int flag = 0;
 	while(*src != '\0'){
@@ -73,3 +111,13 @@ char * change_file_ll(char *src){
 	*(new+n+1) = '\0';
 	return new;
 }
+
+void replace_last_line(char *src, char *new_line, char *last_line){
+	src = realloc(src, sizeof(char) * (strlen(src) + strlen(new_line)));
+	int n = strlen(last_line);
+	*(src + strlen(src) - n) = '\0';
+	strcat(src, new_line);	
+}
+
+
+

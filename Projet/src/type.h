@@ -8,8 +8,8 @@ enum type_base{TYPE_INT, TYPE_DOUBLE, TYPE_VOID};
 struct type{
   int is_function;       //0 is not a function, 1 is a function
   enum type_base tb;     //if is a function, tb is the return type
-  int nb_arg;            //only if is a function
-  enum type_base *arg;   //only if is a function
+  int nb_args;            //only if is a function
+  enum type_base *args;   //only if is a function
 };
 
 struct type *new_type(enum type_base);

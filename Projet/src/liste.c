@@ -16,7 +16,7 @@ void new_element(struct list *list){
   struct element *new_e = malloc(sizeof(struct element));
   new_e->tab = new_tab();
   new_e->next = list->head;
-  list->head = new_e;
+  list->head = new_e; 
 }
 
 int add_list(struct list *list, struct expr *e, char *name){

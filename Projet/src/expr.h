@@ -11,5 +11,6 @@ struct expr{
     struct type *t;
 };
 struct expr * new_expr();
+struct expr * cpy_expr(struct expr *e);
 
 #endif

@@ -5,7 +5,10 @@
 
 struct type *new_type(enum type_base t){
   struct type *ret = malloc(sizeof(struct type));
+  ret->is_function = 0;
+  ret->nb_args = 0;
   ret->tb = t;
+  ret->args = NULL;
   return ret;
 }
 
