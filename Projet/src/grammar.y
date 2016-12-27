@@ -632,38 +632,39 @@ comparison_expression
                    }
 | comparison_expression '<' shift_expression {printf("comparison_expression -> comparison_expression '<' shift_expression \n");
                                               $$ = new_expr();
+                                              $$->var = new_var();
                                               char *code;
-                                              asprintf(&code, "%s%sicmp slt %s %%x%d, %%x%d\n", $1->code, $3->code, name_of_type($1->t->tb), $1->var, $3->var);
+                                              asprintf(&code, "%s%s%%x%d = icmp slt %s %%x%d, %%x%d\n", $1->code, $3->code, $$->var, name_of_type($1->t->tb), $1->var, $3->var);
                                               $$->code = code;
                                              }
 | comparison_expression '>' shift_expression {printf("comparison_expression -> comparison_expression '>' shift_expression \n");
                                               $$ = new_expr();
                                               char *code;
-                                              asprintf(&code, "%s%sicmp sgt %s %%x%d, %%x%d\n", $1->code, $3->code, name_of_type($1->t->tb), $1->var, $3->var);
+                                              asprintf(&code, "%s%s%%x%d = icmp sgt %s %%x%d, %%x%d\n", $1->code, $3->code, $$->var, name_of_type($1->t->tb), $1->var, $3->var);
                                               $$->code = code;
                                              }
 | comparison_expression LE_OP shift_expression {printf("comparison_expression -> comparison_expression LE_OP shift_expression \n");
                                                 $$ = new_expr();
                                                 char *code;
-                                                asprintf(&code, "%s%sicmp sge %s %%x%d, %%x%d\n", $1->code, $3->code, name_of_type($1->t->tb), $1->var, $3->var);
+                                                asprintf(&code, "%s%s%%x%d = icmp sge %s %%x%d, %%x%d\n", $1->code, $3->code, $$->var, name_of_type($1->t->tb), $1->var, $3->var);
                                                 $$->code = code;
                                                }
 | comparison_expression GE_OP shift_expression {printf("comparison_expression -> comparison_expression GE_OP shift_expression \n");
                                                 $$ = new_expr();
                                                 char *code;
-                                                asprintf(&code, "%s%sicmp sle %s %%x%d, %%x%d\n", $1->code, $3->code, name_of_type($1->t->tb), $1->var, $3->var);
+                                                asprintf(&code, "%s%s%%x%d = icmp sle %s %%x%d, %%x%d\n", $1->code, $3->code, $$->var, name_of_type($1->t->tb), $1->var, $3->var);
                                                 $$->code = code;
                                                }
 | comparison_expression EQ_OP shift_expression {printf("comparison_expression -> comparison_expression EQ_OP shift_expression  \n");
                                                 $$ = new_expr();
                                                 char *code;
-                                                asprintf(&code, "%s%sicmp eq %s %%x%d, %%x%d\n", $1->code, $3->code, name_of_type($1->t->tb), $1->var, $3->var);
+                                                asprintf(&code, "%s%s%%x%d = icmp eq %s %%x%d, %%x%d\n", $1->code, $3->code, $$->var, name_of_type($1->t->tb), $1->var, $3->var);
                                                 $$->code = code;
                                                }
 | comparison_expression NE_OP shift_expression {printf("comparison_expression -> comparison_expression NE_OP shift_expression \n");
                                                 $$ = new_expr();
                                                 char *code;
-                                                asprintf(&code, "%s%sicmp ne %s %%x%d, %%x%d\n", $1->code, $3->code, name_of_type($1->t->tb), $1->var, $3->var);
+                                                asprintf(&code, "%s%s%%x%d = icmp ne %s %%x%d, %%x%d\n", $1->code, $3->code, $$->var, name_of_type($1->t->tb), $1->var, $3->var);
                                                 $$->code = code;
                                                }
 ;
@@ -1005,6 +1006,10 @@ statement_list
 
 expression_statement
 : ';' {printf("expression_statement -> ';'  \n");
+       $$ = new_expr();
+       char *code;
+       asprintf(&code, "");
+       $$->code = code;
       }
 | expression ';' {printf("expression_statement -> expression ';' \n");
                   $$ = new_expr();
@@ -1042,33 +1047,152 @@ selection_statement
                                                                   char *code_cond;
                                                                   char *code_body;
                                                                   char *code_inc;
-                                                                  asprintf(&code_cond, "%s\nbr label %%%s\n\n%s:\nbr i1 %%x%d, label %%%s, label %%%s\n\n", $3->code, label_cond, label_cond, $5->var, label_body, label_end);
+                                                                  asprintf(&code_cond, "%sbr label %%%s\n\n%s:\n%sbr i1 %%x%d, label %%%s, label %%%s\n\n", $3->code, label_cond, label_cond, $5->code, $5->var, label_body, label_end);
                                                                   asprintf(&code_body, "%s:\n%sbr label %%%s\n\n", label_body, $9->code, label_inc);
                                                                   asprintf(&code_inc, "%s:\n%sbr label %%%s\n\n%s:\n", label_inc, $7->code, label_cond, label_end);
                                                                   asprintf(&code, "%s%s%s", code_cond, code_body, code_inc);
-                                                                  printf("%s\n", code);
                                                                   $$->code = code;
                                                                  }
 | FOR '(' expression ';' expression ';'            ')' statement {printf("selection_statement -> FOR '(' expression ';' expression ';'            ')' statement \n");
+                                                                  $$ = new_expr();
+                                                                  char *label_cond = new_label();
+                                                                  char *label_body = new_label();
+                                                                  char *label_inc = new_label();
+                                                                  char *label_end = new_label();
+                                                                  char *code;
+                                                                  char *code_cond;
+                                                                  char *code_body;
+                                                                  char *code_inc;
+                                                                  asprintf(&code_cond, "%sbr label %%%s\n\n%s:\n%sbr i1 %%x%d, label %%%s, label %%%s\n\n", $3->code, label_cond, label_cond, $5->code, $5->var, label_body, label_end);
+                                                                  asprintf(&code_body, "%s:\n%sbr label %%%s\n\n", label_body, $8->code, label_inc);
+                                                                  asprintf(&code_inc, "%s:\nbr label %%%s\n\n%s:\n", label_inc, label_cond, label_end);
+                                                                  asprintf(&code, "%s%s%s", code_cond, code_body, code_inc);
+                                                                  $$->code = code;
                                                                  }
 | FOR '(' expression ';'            ';' expression ')' statement {printf("selection_statement -> FOR '(' expression ';'            ';' expression ')' statement \n");
+                                                                  $$ = new_expr();
+                                                                  char *label_cond = new_label();
+                                                                  char *label_body = new_label();
+                                                                  char *label_inc = new_label();
+                                                                  char *label_end = new_label();
+                                                                  char *code;
+                                                                  char *code_cond;
+                                                                  char *code_body;
+                                                                  char *code_inc;
+                                                                  asprintf(&code_cond, "%sbr label %%%s\n\n%s:\nbr label %%%s\n\n", $3->code, label_cond, label_cond, label_body);
+                                                                  asprintf(&code_body, "%s:\n%sbr label %%%s\n\n", label_body, $8->code, label_inc);
+                                                                  asprintf(&code_inc, "%s:\n%sbr label %%%s\n\n%s:\n", label_inc, $6->code, label_cond, label_end);
+                                                                  asprintf(&code, "%s%s%s", code_cond, code_body, code_inc);
+                                                                  $$->code = code;
                                                                  }
 | FOR '(' expression ';'            ';'            ')' statement {printf("selection_statement -> FOR '(' expression ';'            ';'            ')' statement \n");
+                                                                  $$ = new_expr();
+                                                                  char *label_cond = new_label();
+                                                                  char *label_body = new_label();
+                                                                  char *label_inc = new_label();
+                                                                  char *label_end = new_label();
+                                                                  char *code;
+                                                                  char *code_cond;
+                                                                  char *code_body;
+                                                                  char *code_inc;
+                                                                  asprintf(&code_cond, "%sbr label %%%s\n\n%s:\nbr label %%%s\n\n", $3->code, label_cond, label_cond, label_body);
+                                                                  asprintf(&code_body, "%s:\n%sbr label %%%s\n\n", label_body, $7->code, label_inc);
+                                                                  asprintf(&code_inc, "%s:\nbr label %%%s\n\n%s:\n", label_inc, label_cond, label_end);
+                                                                  asprintf(&code, "%s%s%s", code_cond, code_body, code_inc);
+                                                                  $$->code = code;
                                                                  }
 | FOR '('            ';' expression ';' expression ')' statement {printf("selection_statement -> FOR '('            ';' expression ';' expression ')' statement \n");
+                                                                  $$ = new_expr();
+                                                                  char *label_cond = new_label();
+                                                                  char *label_body = new_label();
+                                                                  char *label_inc = new_label();
+                                                                  char *label_end = new_label();
+                                                                  char *code;
+                                                                  char *code_cond;
+                                                                  char *code_body;
+                                                                  char *code_inc;
+                                                                  asprintf(&code_cond, "br label %%%s\n\n%s:\n%sbr i1 %%x%d, label %%%s, label %%%s\n\n", label_cond, label_cond, $4->code, $4->var, label_body, label_end);
+                                                                  asprintf(&code_body, "%s:\n%sbr label %%%s\n\n", label_body, $8->code, label_inc);
+                                                                  asprintf(&code_inc, "%s:\n%sbr label %%%s\n\n%s:\n", label_inc, $6->code, label_cond, label_end);
+                                                                  asprintf(&code, "%s%s%s", code_cond, code_body, code_inc);
+                                                                  $$->code = code;
                                                                  }
 | FOR '('            ';' expression ';'            ')' statement {printf("selection_statement -> FOR '('            ';' expression ';'            ')' statement \n");
+                                                                  $$ = new_expr();
+                                                                  char *label_cond = new_label();
+                                                                  char *label_body = new_label();
+                                                                  char *label_inc = new_label();
+                                                                  char *label_end = new_label();
+                                                                  char *code;
+                                                                  char *code_cond;
+                                                                  char *code_body;
+                                                                  char *code_inc;
+                                                                  asprintf(&code_cond, "br label %%%s\n\n%s:\n%sbr i1 %%x%d, label %%%s, label %%%s\n\n", label_cond, label_cond, $4->code, $4->var, label_body, label_end);
+                                                                  asprintf(&code_body, "%s:\n%sbr label %%%s\n\n", label_body, $7->code, label_inc);
+                                                                  asprintf(&code_inc, "%s:\nbr label %%%s\n\n%s:\n", label_inc, label_cond, label_end);
+                                                                  asprintf(&code, "%s%s%s", code_cond, code_body, code_inc);
+                                                                  $$->code = code;
                                                                  }
 | FOR '('            ';'            ';' expression ')' statement {printf("selection_statement -> FOR '('            ';'            ';' expression ')' statement \n");
+                                                                  $$ = new_expr();
+                                                                  char *label_cond = new_label();
+                                                                  char *label_body = new_label();
+                                                                  char *label_inc = new_label();
+                                                                  char *label_end = new_label();
+                                                                  char *code;
+                                                                  char *code_cond;
+                                                                  char *code_body;
+                                                                  char *code_inc;
+                                                                  asprintf(&code_cond, "br label %%%s\n\n%s:\nbr label %%%s\n\n", label_cond, label_cond, label_body);
+                                                                  asprintf(&code_body, "%s:\n%sbr label %%%s\n\n", label_body, $7->code, label_inc);
+                                                                  asprintf(&code_inc, "%s:\n%sbr label %%%s\n\n%s:\n", label_inc, $5->code, label_cond, label_end);
+                                                                  asprintf(&code, "%s%s%s", code_cond, code_body, code_inc);
+                                                                  $$->code = code;
                                                                  }
 | FOR '('            ';'            ';'            ')' statement {printf("selection_statement -> FOR '('            ';'            ';'            ')' statement \n");
+                                                                  $$ = new_expr();
+                                                                  char *label_cond = new_label();
+                                                                  char *label_body = new_label();
+                                                                  char *label_inc = new_label();
+                                                                  char *label_end = new_label();
+                                                                  char *code;
+                                                                  char *code_cond;
+                                                                  char *code_body;
+                                                                  char *code_inc;
+                                                                  asprintf(&code_cond, "br label %%%s\n\n%s:\nbr label %%%s\n\n", label_cond, label_cond, label_body);
+                                                                  asprintf(&code_body, "%s:\n%sbr label %%%s\n\n", label_body, $6->code, label_inc);
+                                                                  asprintf(&code_inc, "%s:\nbr label %%%s\n\n%s:\n", label_inc, label_cond, label_end);
+                                                                  asprintf(&code, "%s%s%s", code_cond, code_body, code_inc);
+                                                                  $$->code = code;
                                                                  }
 ;
 
 iteration_statement
 : WHILE '(' expression ')' statement {printf("iteration_statement -> WHILE '(' expression ')' statement \n");
+                                      $$ = new_expr();
+                                      char *label_cond = new_label();
+                                      char *label_body = new_label();
+                                      char *label_end = new_label();
+                                      char *code;
+                                      char *code_cond;
+                                      char *code_body;
+                                      asprintf(&code_cond, "br label %%%s\n\n%s:\n%sbr i1 %%x%d, label %%%s, label %%%s\n\n", label_cond, label_cond, $3->code, $3->var, label_body, label_end);
+                                      asprintf(&code_body, "%s:\n%sbr label %%%s\n\n%s:\n", label_body, $5->code, label_cond, label_end);
+                                      asprintf(&code, "%s%s", code_cond, code_body);
+                                      $$->code = code;
                                      }
 | DO statement WHILE '(' expression ')' {printf("iteration_statement -> DO statement WHILE '(' expression ')' \n");
+                                         $$ = new_expr();
+                                         char *label_body = new_label();
+                                         char *label_cond = new_label();
+                                         char *label_end = new_label();
+                                         char *code;
+                                         char *code_cond;
+                                         char *code_body;
+                                         asprintf(&code_cond, "%s:\n%sbr i1 %%x%d, label %%%s, label %%%s\n\n%s:\n", label_cond, $5->code, $5->var, label_body, label_end, label_end);
+                                         asprintf(&code_body, "%s:\n%sbr label %%%s\n\n", label_body, $2->code, label_cond);
+                                         asprintf(&code, "%s%s", code_body, code_cond);
+                                         $$->code = code;
                                         }
 ;
 

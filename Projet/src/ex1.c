@@ -1,10 +1,10 @@
 int pile(int x){
 	int sum;
   	int i;
-
   	sum = 0;
- 	for (i=0; i<x; i++)
-    	sum += 1;
+  	do{
+  		sum += 1;
+  	} while(i < x);
   return sum;
 }
 
