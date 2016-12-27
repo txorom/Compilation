@@ -11,5 +11,6 @@ void del_carac(char *src, char old);
 char * change_file_ll(char *src);
 int get_cst_int(char *src);
 void replace_last_line(char *src, char *new_line, char *last_line);
+char* add_function_declaration();
 
 #endif

@@ -119,5 +119,12 @@ void replace_last_line(char *src, char *new_line, char *last_line){
 	strcat(src, new_line);	
 }
 
+char* add_function_declaration(){
+	char *function;
+	asprintf(&function, "declare double @log10(double)\ndeclare void @stroke(double)\ndeclare void @point(double, double)\ndeclare void @createCanvas(double, double)\n");
+	return function;
+}
+
+
 
 
