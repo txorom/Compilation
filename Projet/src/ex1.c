@@ -1,4 +1,2 @@
-void toto(){
-	double a, b, c;
-	c = a / b;
+void toto(int x, int y, double z){
 }

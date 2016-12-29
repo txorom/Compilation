@@ -1,5 +1,7 @@
 #ifndef _UTILS_
 #define _UTILS_
+#include "type.h"
+#include "expr.h"
 
 char *double_to_hex_str(double);
 int new_var();
@@ -10,7 +12,8 @@ void name_of_function(char *src, char *dest);
 void del_carac(char *src, char old);
 char * change_file_ll(char *src);
 int get_cst_int(char *src);
-void replace_last_line(char *src, char *new_line, char *last_line);
+char* conv_ret(char *src, enum type_base type, char *var);
 char* add_function_declaration();
+int compare_list(char src1[1024][1024], int taille1, char *src, char dest[1024][1024]);
 
 #endif

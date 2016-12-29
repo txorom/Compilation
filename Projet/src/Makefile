@@ -1,6 +1,6 @@
 LEX=lex
 YACC=bison
-CFLAGS=-Wall
+CFLAGS=-Wall -g
 CC=gcc
 
 all:parse

@@ -92,6 +92,33 @@ void add_basic_function(struct list *list){
   e7->t->args[0] = TYPE_DOUBLE;
   char *name7 = "log10";
   add_list(list, e7, name7);
+  struct expr *e8 = new_expr();
+  e8->t = new_type(TYPE_DOUBLE);
+  e8->t->is_function = 1;
+  e8->t->nb_args = 1; 
+  e8->t->args = malloc(sizeof(enum type_base) * 1);
+  e8->t->args[0] = TYPE_DOUBLE;
+  char *name8 = "sin";
+  add_list(list, e8, name8);
+  struct expr *e9 = new_expr();
+  e9->t = new_type(TYPE_DOUBLE);
+  e9->t->is_function = 1;
+  e9->t->nb_args = 1; 
+  e9->t->args = malloc(sizeof(enum type_base) * 1);
+  e9->t->args[0] = TYPE_DOUBLE;
+  char *name9 = "cos";
+  add_list(list, e9, name9);
+  struct expr *e10 = new_expr();
+  e10->t = new_type(TYPE_VOID);
+  e10->t->is_function = 1;
+  e10->t->nb_args = 4; 
+  e10->t->args = malloc(sizeof(enum type_base) * 4);
+  e10->t->args[0] = TYPE_DOUBLE;
+  e10->t->args[1] = TYPE_DOUBLE;
+  e10->t->args[2] = TYPE_DOUBLE;
+  e10->t->args[3] = TYPE_DOUBLE;
+  char *name10 = "rect";
+  add_list(list, e10, name10);
 }
 
 int add_list(struct list *list, struct expr *e, char *name){

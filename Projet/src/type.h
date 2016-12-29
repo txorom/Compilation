@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-enum type_base{TYPE_INT, TYPE_DOUBLE, TYPE_VOID};
+enum type_base{TYPE_INT, TYPE_DOUBLE, TYPE_VOID, TYPE_BOOL};
 
 struct type{
   int is_function;       //0 is not a function, 1 is a function

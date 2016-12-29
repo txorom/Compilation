@@ -16,8 +16,10 @@
     char alloc_param[1024] = "";
     int error = 0;
     int type_return_function = -1;
-    int var_return;
+    int var_return = -1;
     char name_arg[1024] = "";
+    char name_arg_func[1024][1024];
+    int nb_arg_func = 0;
 %}
 
 %token <string> IDENTIFIER
@@ -44,7 +46,7 @@ unary_operator multiplicative_expression additive_expression comparison_expressi
 %%
 
 conditional_expression
-: logical_or_expression {//printf("conditional_expression -> logical_or_expression \n");
+: logical_or_expression {printf("conditional_expression -> logical_or_expression \n");
                          $$ = cpy_expr($1);
                          /*$$ = new_expr();
                          char *code;
@@ -55,41 +57,56 @@ conditional_expression
 ;
 
 logical_or_expression
-: logical_and_expression {//printf("logical_or_expression -> logical_and_expression \n");
+: logical_and_expression {printf("logical_or_expression -> logical_and_expression \n");
                           $$ = cpy_expr($1);
                          }
-| logical_or_expression OR logical_and_expression {//printf("logical_or_expression -> logical_or_expression OR logical_and_expression \n");
+| logical_or_expression OR logical_and_expression {printf("logical_or_expression -> logical_or_expression OR logical_and_expression \n");
                                                    $$ = new_expr();
-                                                   $$->var = new_var();
-                                                   char *code;
-                                                   if($1->t->tb == $3->t->tb && $1->t->tb == TYPE_INT){
-                                                      $$->t = new_type($1->t->tb);
-                                                      asprintf(&code, "%s%s%%x%d = or i32 %%x%d, %%x%d\n", $1->code, $3->code, $$->var, $1->var, $3->var);
-                                                   }
-                                                   else{
-                                                      char *conversion;
-                                                      char *conversion1 = "";
-                                                      char *conversion2 = "";
-                                                      int var1 = $1->var;
-                                                      int var2 = $3->var;
-                                                      if($1->t->tb == TYPE_DOUBLE){
-                                                        var1 = new_var();
-                                                        asprintf(&conversion1, "%%x%d = fptosi double %%x%d to i32\n", var1, $1->var);
-                                                      }
-                                                      if($3->t->tb == TYPE_DOUBLE){
-                                                        var2 = new_var();
-                                                        asprintf(&conversion2, "%%x%d = fptosi double %%x%d to i32\n", var2, $3->var);
-                                                      }
-                                                      asprintf(&conversion, "%s%s", conversion1, conversion2);
-                                                      asprintf(&code, "%s%s%s%%x%d = or i32 %%x%d, %%x%d\n",$1->code, $3->code, conversion, $$->var, var1, var2);
+                                                  int var = new_var();
+                                                  $$->var = new_var();
+                                                  char *code;
+                                                  char *conv;
+                                                  asprintf(&conv, "%%x%d = icmp eq i32 %%x%d, 1\n", $$->var, var);                                                   
+                                                  if($1->t->tb == $3->t->tb && $1->t->tb == TYPE_INT){
+                                                    $$->t = new_type($1->t->tb);
+                                                    asprintf(&code, "%s%s%%x%d = or i32 %%x%d, %%x%d\n%s", $1->code, $3->code, var, $1->var, $3->var, conv);
+                                                  }
+                                                  else{
+                                                    char *conversion;
+                                                    char *conversion1 = "";
+                                                    char *conversion2 = "";
+                                                    char *conversion3 = "";
+                                                    char *conversion4 = "";
+                                                    int var1 = $1->var;
+                                                    int var2 = $3->var;
+                                                    if($1->t->tb == TYPE_DOUBLE){
+                                                      var1 = new_var();
+                                                      asprintf(&conversion1, "%%x%d = fptosi double %%x%d to i32\n", var1, $1->var);
                                                     }
-                                                    $$->code = code;
-                                                    $$->t = new_type(TYPE_INT);
+                                                    if($3->t->tb == TYPE_DOUBLE){
+                                                      var2 = new_var();
+                                                      asprintf(&conversion2, "%%x%d = fptosi double %%x%d to i32\n", var2, $3->var);
+                                                    }
+                                                    if($1->t->tb == TYPE_BOOL){
+                                                      printf("ok\n");
+                                                      var1 = new_var();
+                                                      asprintf(&conversion3, "%%x%d = zext i1 %%x%d to i32\n", var1, $1->var);
+                                                    }
+                                                    if($3->t->tb == TYPE_BOOL){
+                                                      var2 = new_var();
+                                                      asprintf(&conversion4, "%%x%d = zext i1 %%x%d to i32\n", var2, $3->var);
+                                                    }
+                                                    asprintf(&conversion, "%s%s%s%s", conversion1, conversion2, conversion3, conversion4);
+                                                    asprintf(&code, "%s%s%s%%x%d = or i32 %%x%d, %%x%d\n%s",$1->code, $3->code, conversion, var, var1, var2, conv);
+                                                  }
+
+                                                  $$->code = code;
+                                                  $$->t = new_type(TYPE_INT);
                                                   }
 ;
 
 logical_and_expression
-: comparison_expression {//printf("logical_and_expression -> comparison_expression \n");
+: comparison_expression {printf("logical_and_expression -> comparison_expression \n");
                          $$ = cpy_expr($1);
                          /*$$ = new_expr();
                          char *code;
@@ -97,18 +114,23 @@ logical_and_expression
                          asprintf(&code, "%s", $1->code);
                          $$->code = code;*/
                         }
-| logical_and_expression AND comparison_expression {//printf("logical_and_expression -> logical_and_expression AND comparison_expression\n");
+| logical_and_expression AND comparison_expression {printf("logical_and_expression -> logical_and_expression AND comparison_expression\n");
                                                     $$ = new_expr();
+                                                    int var = new_var();
                                                     $$->var = new_var();
-                                                    char *code;                                                   
+                                                    char *code;
+                                                    char *conv;
+                                                    asprintf(&conv, "%%x%d = icmp eq i32 %%x%d, 1\n", $$->var, var);                                                   
                                                     if($1->t->tb == $3->t->tb && $1->t->tb == TYPE_INT){
                                                       $$->t = new_type($1->t->tb);
-                                                      asprintf(&code, "%s%s%%x%d = and i32 %%x%d, %%x%d\n", $1->code, $3->code, $$->var, $1->var, $3->var);
+                                                      asprintf(&code, "%s%s%%x%d = and i32 %%x%d, %%x%d\n%s", $1->code, $3->code, var, $1->var, $3->var, conv);
                                                     }
                                                     else{
                                                       char *conversion;
                                                       char *conversion1 = "";
                                                       char *conversion2 = "";
+                                                      char *conversion3 = "";
+                                                      char *conversion4 = "";
                                                       int var1 = $1->var;
                                                       int var2 = $3->var;
                                                       if($1->t->tb == TYPE_DOUBLE){
@@ -119,9 +141,19 @@ logical_and_expression
                                                         var2 = new_var();
                                                         asprintf(&conversion2, "%%x%d = fptosi double %%x%d to i32\n", var2, $3->var);
                                                       }
-                                                      asprintf(&conversion, "%s%s", conversion1, conversion2);
-                                                      asprintf(&code, "%s%s%s%%x%d = and i32 %%x%d, %%x%d\n",$1->code, $3->code, conversion, $$->var, var1, var2);
+                                                      if($1->t->tb == TYPE_BOOL){
+                                                        printf("ok\n");
+                                                        var1 = new_var();
+                                                        asprintf(&conversion3, "%%x%d = zext i1 %%x%d to i32\n", var1, $1->var);
+                                                      }
+                                                      if($3->t->tb == TYPE_BOOL){
+                                                        var2 = new_var();
+                                                        asprintf(&conversion4, "%%x%d = zext i1 %%x%d to i32\n", var2, $3->var);
+                                                      }
+                                                      asprintf(&conversion, "%s%s%s%s", conversion1, conversion2, conversion3, conversion4);
+                                                      asprintf(&code, "%s%s%s%%x%d = and i32 %%x%d, %%x%d\n%s",$1->code, $3->code, conversion, var, var1, var2, conv);
                                                     }
+
                                                     $$->code = code;
                                                     $$->t = new_type(TYPE_INT);
                                                    }
@@ -129,7 +161,7 @@ logical_and_expression
 
 
 shift_expression
-: additive_expression {//printf("shift_expression -> additive_expression \n");
+: additive_expression {printf("shift_expression -> additive_expression \n");
                        $$ = cpy_expr($1);
                        /*$$ = new_expr();
                        char *code;
@@ -137,7 +169,7 @@ shift_expression
                        asprintf(&code, "%s", $1->code);
                        $$->code = code;*/
                       }
-| shift_expression SHL additive_expression {//printf("shift_expression -> shift_expression SHL additive_expression \n");
+| shift_expression SHL additive_expression {printf("shift_expression -> shift_expression SHL additive_expression \n");
                                             if($1->t->tb == TYPE_DOUBLE || $3->t->tb == TYPE_DOUBLE){
                                               error ++;
                                               couleur("31");
@@ -153,7 +185,7 @@ shift_expression
                                             asprintf(&code, "%s%s%%x%d = shl %s %%x%d, %%x%d\n",$1->code, $3->code, $$->var, name_of_type($1->t->tb), $1->var, $3->var);
                                             $$->code = code;
                                            }
-| shift_expression SHR additive_expression {//printf("shift_expression -> shift_expression SHR additive_expression \n");
+| shift_expression SHR additive_expression {printf("shift_expression -> shift_expression SHR additive_expression \n");
                                             if($1->t->tb == TYPE_DOUBLE || $3->t->tb == TYPE_DOUBLE){
                                               error ++;
                                               couleur("31");
@@ -172,7 +204,7 @@ shift_expression
 ;
 
 primary_expression
-: IDENTIFIER {//printf("primary_expression -> IDENTIFIER (%s)\n", $1);
+: IDENTIFIER {printf("primary_expression -> IDENTIFIER (%s)\n", $1);
               struct expr *e = find_list(tab_symbol, $1);
               if(e == NULL){
                 error ++;
@@ -193,26 +225,30 @@ primary_expression
               $$->code = code;
               add_list(tab_symbol, $$, name_x);
               }
-| CONSTANTI {//printf("primary_expression -> CONSTANTI (%d)\n", $1);
+| CONSTANTI {printf("primary_expression -> CONSTANTI (%d)\n", $1);
               $$=new_expr();
               $$->var=new_var();
               $$->t=new_type(TYPE_INT);
-              char *code;
+              char *code, *name;
+              asprintf(&name, "x%d", $$->var);
               asprintf(&code, "%%x%d = add i32 0, %d \n",$$->var, $1);
+              add_list(tab_symbol, $$, name);
               $$->code = code;
             }
-| CONSTANTD {//printf("primary_expression -> CONSTANTD (%f)\n", $1);
+| CONSTANTD {printf("primary_expression -> CONSTANTD (%f)\n", $1);
               $$=new_expr();
               $$->var=new_var();
               $$->t=new_type(TYPE_DOUBLE);
-              char *code;
+              char *code, *name;
+              asprintf(&name, "x%d", $$->var);
               asprintf(&code, "%%x%d = fadd double %s, %s \n",$$->var, double_to_hex_str(0.0), double_to_hex_str($1));
+              add_list(tab_symbol, $$, name);
               $$->code = code;
             }
-| '(' expression ')' {//printf("primary_expression -> '(' expression ')' \n");
+| '(' expression ')' {printf("primary_expression -> '(' expression ')' \n");
                       $$ = cpy_expr($2);
                      }
-| IDENTIFIER '(' ')' {//printf("primary_expression -> IDENTIFIER '(' ')' (%s)\n", $1);
+| IDENTIFIER '(' ')' {printf("primary_expression -> IDENTIFIER '(' ')' (%s)\n", $1);
                       $$ = new_expr();
                       struct expr *e = find_list(tab_symbol, $1);
                       if(e == NULL){
@@ -251,7 +287,7 @@ primary_expression
                       printf("%s\n", code);
                       $$->code = code;
                      } 
-| IDENTIFIER '(' argument_expression_list ')' {//printf("primary_expression -> IDENTIFIER '(' argument_expression_list ')' (%s)\n", $1);
+| IDENTIFIER '(' argument_expression_list ')' {printf("primary_expression -> IDENTIFIER '(' argument_expression_list ')' (%s)\n", $1);
                                                $$ = new_expr();
                                                struct expr *e = find_list(tab_symbol, $1);
                                                if(e == NULL){
@@ -270,9 +306,8 @@ primary_expression
                                                   printf("\"%s\" n'est pas une fonction à la ligne %d\n", $1, yylineno);
                                                   return 1;
                                                }
-                                               char **args;
-                                               args = malloc(sizeof(char));
-                                               int nb_args = list_of_args($3->code, args);
+                                               char args[1024][1024];
+                                               int nb_args = compare_list(name_arg_func, nb_arg_func, $3->code, args);
                                                if(e->t->nb_args != nb_args){
                                                   error ++;
                                                   couleur("31");
@@ -283,33 +318,67 @@ primary_expression
                                                }
                                                //Conversion de type si on a pas le bon
                                                char *code;
+                                               char conversion[1024] = "", *tmp_conv, *tmp_arg;
+                                               int var;
                                                char arg[1024] = "";
                                                struct expr *e_arg;
                                                for(int i = 0; i < nb_args - 1; i++){
                                                  e_arg = find_list(tab_symbol, args[i]);
-                                                 strcat(arg, name_of_type(e_arg->t->tb));
-                                                 strcat(arg, " %");
-                                                 strcat(arg, args[i]);
-                                                 strcat(arg, ", ");
+                                                 if(e_arg->t->tb == e->t->args[i]){
+                                                   strcat(arg, name_of_type(e_arg->t->tb));
+                                                   strcat(arg, " %");
+                                                   strcat(arg, args[i]);
+                                                   strcat(arg, ", ");
+                                                 }
+                                                 else{
+                                                  var = new_var();
+                                                  if(e->t->args[i] == TYPE_INT){
+                                                    asprintf(&tmp_conv, "%%x%d = fptosi double %%%s to i32\n", var, args[i]);
+                                                  }
+                                                  else{
+                                                    asprintf(&tmp_conv, "%%x%d = sitofp i32 %%%s to double\n", var, args[i]);
+                                                  }
+                                                  strcat(conversion, tmp_conv);
+                                                  asprintf(&tmp_arg, "%s %%x%d, ", name_of_type(e->t->args[i]), var);
+                                                  strcat(arg, tmp_arg);
+                                                 }
                                                }
                                                e_arg = find_list(tab_symbol, args[nb_args - 1]);
-                                               strcat(arg, name_of_type(e_arg->t->tb));
-                                               strcat(arg, " %");
-                                               strcat(arg, args[nb_args - 1]);
+                                               if(e_arg->t->tb == e->t->args[nb_args - 1]){
+                                                   strcat(arg, name_of_type(e_arg->t->tb));
+                                                   strcat(arg, " %");
+                                                   strcat(arg, args[nb_args - 1]);
+                                               }
+                                               else{
+                                                var = new_var();
+                                                if(e->t->args[nb_args - 1] == TYPE_INT){
+                                                  asprintf(&tmp_conv, "%%x%d = fptosi double %%%s to i32\n", var, args[nb_args - 1]);
+                                                }
+                                                else{
+                                                  asprintf(&tmp_conv, "%%x%d = sitofp i32 %%%s to double\n", var, args[nb_args - 1]);
+                                                }
+                                                strcat(conversion, tmp_conv);
+                                                asprintf(&tmp_arg, "%s %%x%d", name_of_type(e->t->args[nb_args - 1]), var);
+                                                strcat(arg, tmp_arg);
+                                               }
                                                if(e->t->tb != TYPE_VOID){
                                                 $$->var = new_var();
                                                 $$->t = new_type(e->t->tb);
-                                                asprintf(&code, "%s%%x%d = call %s @%s(%s)\n", $3->code, $$->var, name_of_type(e->t->tb), $1, arg);
+                                                asprintf(&code, "%s%s%%x%d = call %s @%s(%s)\n", $3->code, conversion, $$->var, name_of_type(e->t->tb), $1, arg);
+                                                char *name_x;
+                                                asprintf(&name_x, "x%d", $$->var);
+                                                add_list(tab_symbol, $$, name_x);
                                                }
                                                else{
-                                                asprintf(&code, "%scall %s @%s(%s)\n", $3->code, name_of_type(e->t->tb), $1, arg);
+                                                asprintf(&code, "%s%scall %s @%s(%s)\n", $3->code, conversion, name_of_type(e->t->tb), $1, arg);
                                                }
                                                $$->code = code;
+                                               nb_arg_func -= e->t->nb_args;
                                               }
 ;
 
 postfix_expression
-: primary_expression {//printf("postfix_expression -> primary_expression \n");
+: primary_expression {printf("postfix_expression -> primary_expression \n");
                       $$ = cpy_expr($1);
    /*$$ = new_expr();
                       $$->t = new_type($1->t->tb);
@@ -318,7 +387,7 @@ postfix_expression
                       asprintf(&code, "%s", $1->code);
                       $$->code = code;*/
                      }
-| postfix_expression INC_OP {//printf("postfix_expression -> postfix_expression INC_OP \n");
+| postfix_expression INC_OP {printf("postfix_expression -> postfix_expression INC_OP \n");
                              $$ = new_expr();
                              int var = new_var();
                              char *code, *code_add;
@@ -331,7 +400,7 @@ postfix_expression
                              asprintf(&code, "%s%s", $1->code, code_add);
                              $$->code = code;
                             }
-| postfix_expression DEC_OP {//printf("postfix_expression -> postfix_expression DEC_OP \n");
+| postfix_expression DEC_OP {printf("postfix_expression -> postfix_expression DEC_OP \n");
                              $$ = new_expr();
                              int var = new_var();
                              char *code, *code_sub;
@@ -347,19 +416,29 @@ postfix_expression
 ;
 
 argument_expression_list
-: expression {//printf("argument_expression_list -> expression \n");
+: expression {printf("argument_expression_list -> expression \n");
+              char *tmp;
+              asprintf(&tmp, "x%d", $1->var);
+              strcpy(name_arg_func[nb_arg_func], "");
+              strcat(name_arg_func[nb_arg_func], tmp);
+              nb_arg_func++;
               $$ = cpy_expr($1);
              }
-| argument_expression_list ',' expression {//printf("argument_expression_list -> argument_expression_list ',' expression \n");
+| argument_expression_list ',' expression {printf("argument_expression_list -> argument_expression_list ',' expression \n");
                                            $$ = new_expr();
                                            char *code;
+                                           char *tmp;
+                                           asprintf(&tmp, "x%d", $3->var);
+                                           strcpy(name_arg_func[nb_arg_func], "");
+                                           strcat(name_arg_func[nb_arg_func], tmp);
+                                           nb_arg_func++;
                                            asprintf(&code, "%s%s", $1->code, $3->code);
                                            $$->code = code;
                                           }
 ;
 
 unary_expression
-: postfix_expression {//printf("unary_expression -> postfix_expression \n");
+: postfix_expression {printf("unary_expression -> postfix_expression \n");
                       $$ = cpy_expr($1);
                       /*$$ = new_expr();
                       $$->t = new_type($1->t->tb);
@@ -368,7 +447,7 @@ unary_expression
                       asprintf(&code, "%s", $1->code);
                       $$->code = code;*/
                      }
-| INC_OP unary_expression {//printf("unary_expression -> INC_OP unary_expression  \n");
+| INC_OP unary_expression {printf("unary_expression -> INC_OP unary_expression  \n");
                            $$ = new_expr();
                            int var = new_var();
                            char *code, *code_add;
@@ -381,7 +460,7 @@ unary_expression
                            asprintf(&code, "%s%s", $2->code, code_add);
                            $$->code = code;
                           }
-| DEC_OP unary_expression {//printf("unary_expression -> DEC_OP unary_expression  \n");
+| DEC_OP unary_expression {printf("unary_expression -> DEC_OP unary_expression  \n");
                            $$ = new_expr();
                            int var = new_var();
                            char *code, *code_sub;
@@ -394,13 +473,11 @@ unary_expression
                            asprintf(&code, "%s%s", $2->code, code_sub);
                            $$->code = code;
                           }
-| unary_operator unary_expression {//printf("unary_expression -> unary_operator unary_expression \n");
+| unary_operator unary_expression {printf("unary_expression -> unary_operator unary_expression \n");
                                    $$ = new_expr();
                                    char *code, var[10], signe[3], action[10], type[10], val[5];
                                    char val2[10];
-                                   printf("%s\n", $2->code);
                                    sscanf($2->code, "%s %s %s %s %s %s", var, signe, action, type, val, val2);
-                                   printf("%s\n", signe);
                                    if($2->t->tb == TYPE_INT){
                                     asprintf(&code, "%s = %s %s %s %s%s\n", var, action, name_of_type($2->t->tb), val, $1->code, val2);
                                    }
@@ -414,7 +491,7 @@ unary_expression
 ;
 
 unary_operator
-: '-' {//printf("unary_operator -> '-' \n");
+: '-' {printf("unary_operator -> '-' \n");
        $$ = new_expr();
        char *code;
        asprintf(&code, "-");
@@ -423,7 +500,7 @@ unary_operator
 ;
 
 multiplicative_expression
-: unary_expression {//printf("multiplicative_expression -> unary_expression  \n");
+: unary_expression {printf("multiplicative_expression -> unary_expression  \n");
                     $$ = cpy_expr($1);
                     /*$$ = new_expr();
                     $$->t = new_type($1->t->tb);
@@ -432,7 +509,7 @@ multiplicative_expression
                     asprintf(&code, "%s", $1->code);
                     $$->code = code;*/
                    }
-| multiplicative_expression '*' unary_expression {//printf("multiplicative_expression -> multiplicative_expression '*' unary_expression  \n");
+| multiplicative_expression '*' unary_expression {printf("multiplicative_expression -> multiplicative_expression '*' unary_expression  \n");
                                                   $$ = new_expr();
                                                   $$->var = new_var();
                                                   char *code;
@@ -463,9 +540,12 @@ multiplicative_expression
                                                     }
                                                     asprintf(&code, "%s%s%s%%x%d = fmul double %%x%d, %%x%d\n",$1->code, $3->code, conversion, $$->var, var1, var2);
                                                  }
+                                                 char *name_x;
+                                                 asprintf(&name_x, "x%d", $$->var);
+                                                 add_list(tab_symbol, $$, name_x);
                                                  $$->code = code;
                                                  }
-| multiplicative_expression '/' unary_expression {//printf("multiplicative_expression -> multiplicative_expression '/' unary_expression \n");
+| multiplicative_expression '/' unary_expression {printf("multiplicative_expression -> multiplicative_expression '/' unary_expression \n");
                                                   $$ = new_expr();
                                                   $$->var = new_var();
                                                   char *code;
@@ -496,9 +576,12 @@ multiplicative_expression
                                                     }
                                                     asprintf(&code, "%s%s%s%%x%d = fdiv double %%x%d, %%x%d\n",$1->code, $3->code, conversion, $$->var, var1, var2);
                                                   }
+                                                  char *name_x;
+                                                  asprintf(&name_x, "x%d", $$->var);
+                                                  add_list(tab_symbol, $$, name_x);
                                                   $$->code = code;
                                                  }
-| multiplicative_expression REM unary_expression {//printf("multiplicative_expression -> multiplicative_expression REM unary_expression  \n");
+| multiplicative_expression REM unary_expression {printf("multiplicative_expression -> multiplicative_expression REM unary_expression  \n");
                                                   if($1->t->tb == TYPE_DOUBLE || $3->t->tb == TYPE_DOUBLE){
                                                     error ++;
                                                     couleur("31");
@@ -512,12 +595,15 @@ multiplicative_expression
                                                   $$->t = new_type($1->t->tb);
                                                   char *code;
                                                   asprintf(&code, "%s%s%%x%d = srem %s %%x%d, %%x%d\n",$1->code, $3->code, $$->var, name_of_type($1->t->tb), $1->var, $3->var);
+                                                  char *name_x;
+                                                  asprintf(&name_x, "x%d", $$->var);
+                                                  add_list(tab_symbol, $$, name_x);
                                                   $$->code = code;
                                                  }
 ;
 
 additive_expression
-: multiplicative_expression {//printf("additive_expression -> multiplicative_expression \n");
+: multiplicative_expression {printf("additive_expression -> multiplicative_expression \n");
                              $$ = cpy_expr($1);
              /*$$ = new_expr();
                              $$->t = new_type($1->t->tb);
@@ -526,7 +612,7 @@ additive_expression
                              asprintf(&code, "%s", $1->code);
                              $$->code = code;*/
                             }
-| additive_expression '+' multiplicative_expression {//printf("additive_expression ->  additive_expression '+' multiplicative_expression \n");
+| additive_expression '+' multiplicative_expression {printf("additive_expression ->  additive_expression '+' multiplicative_expression \n");
                                                      $$ = new_expr();
                                                      $$->var = new_var();
                                                      char *code;
@@ -557,6 +643,9 @@ additive_expression
                                                         }
                                                         asprintf(&code, "%s%s%s%%x%d = fadd double %%x%d, %%x%d\n",$1->code, $3->code, conversion, $$->var, var1, var2);
                                                      }
+                                                     char *name_x;
+                                                     asprintf(&name_x, "x%d", $$->var);
+                                                     add_list(tab_symbol, $$, name_x);
                                                      $$->code = code;
                  /*
                  
@@ -596,7 +685,7 @@ additive_expression
                                                      asprintf(&nom, "%%x%d", $$->var);
                                                      add_list(tab_symbol, $$, nom);*/
                                                     }
-| additive_expression '-' multiplicative_expression {//printf("additive_expression -> additive_expression '-' multiplicative_expression \n");
+| additive_expression '-' multiplicative_expression {printf("additive_expression -> additive_expression '-' multiplicative_expression \n");
                                                      $$ = new_expr();
                                                      $$->var = new_var();
                                                      char *code;
@@ -627,12 +716,15 @@ additive_expression
                                                         }
                                                         asprintf(&code, "%s%s%s%%x%d = fsub double %%x%d, %%x%d\n",$1->code, $3->code, conversion, $$->var, var1, var2);
                                                      }
+                                                     char *name_x;
+                                                     asprintf(&name_x, "x%d", $$->var);
+                                                     add_list(tab_symbol, $$, name_x);
                                                      $$->code = code;
                                                     }
 ;
 
 comparison_expression
-: shift_expression {//printf("comparison_expression -> shift_expression  \n");
+: shift_expression {printf("comparison_expression -> shift_expression  \n");
                     $$ = cpy_expr($1);
                     /*$$ = new_expr();
                     char *code;
@@ -640,10 +732,10 @@ comparison_expression
                     asprintf(&code, "%s", $1->code);
                     $$->code = code;*/
                    }
-| comparison_expression '<' shift_expression {//printf("comparison_expression -> comparison_expression '<' shift_expression \n");
+| comparison_expression '<' shift_expression {printf("comparison_expression -> comparison_expression '<' shift_expression \n");
                                               $$ = new_expr();
                                               $$->var = new_var();
-                                              $$->t = new_type(TYPE_INT);
+                                              $$->t = new_type(TYPE_BOOL);
                                               char *code;
                                               int var1 = $1->var;
                                               int var3 = $3->var;
@@ -669,10 +761,10 @@ comparison_expression
                                               asprintf(&code, "%s%s%s%%x%d = icmp slt i32 %%x%d, %%x%d\n", $1->code, $3->code, conversion, $$->var, var1, var3);
                                               $$->code = code;
                                              }
-| comparison_expression '>' shift_expression {//printf("comparison_expression -> comparison_expression '>' shift_expression \n");
+| comparison_expression '>' shift_expression {printf("comparison_expression -> comparison_expression '>' shift_expression \n");
                                               $$ = new_expr();
                                               $$->var = new_var();
-                                              $$->t = new_type(TYPE_INT);
+                                              $$->t = new_type(TYPE_BOOL);
                                               char *code;
                                               int var1 = $1->var;
                                               int var3 = $3->var;
@@ -698,10 +790,10 @@ comparison_expression
                                               asprintf(&code, "%s%s%s%%x%d = icmp sgt i32 %%x%d, %%x%d\n", $1->code, $3->code, conversion, $$->var, var1, var3);
                                               $$->code = code;
                                              }
-| comparison_expression LE_OP shift_expression {//printf("comparison_expression -> comparison_expression LE_OP shift_expression \n");
+| comparison_expression LE_OP shift_expression {printf("comparison_expression -> comparison_expression LE_OP shift_expression \n");
                                                 $$ = new_expr();
                                                 $$->var = new_var();
-                                                $$->t = new_type(TYPE_INT);
+                                                $$->t = new_type(TYPE_BOOL);
                                                 char *code;
                                                 int var1 = $1->var;
                                                 int var3 = $3->var;
@@ -727,10 +819,10 @@ comparison_expression
                                                 asprintf(&code, "%s%s%s%%x%d = icmp sge i32 %%x%d, %%x%d\n", $1->code, $3->code, conversion, $$->var, var1, var3);
                                                 $$->code = code;
                                                }
-| comparison_expression GE_OP shift_expression {//printf("comparison_expression -> comparison_expression GE_OP shift_expression \n");
+| comparison_expression GE_OP shift_expression {printf("comparison_expression -> comparison_expression GE_OP shift_expression \n");
                                                 $$ = new_expr();
                                                 $$->var = new_var();
-                                                $$->t = new_type(TYPE_INT);
+                                                $$->t = new_type(TYPE_BOOL);
                                                 char *code;
                                                 int var1 = $1->var;
                                                 int var3 = $3->var;
@@ -756,10 +848,10 @@ comparison_expression
                                                 asprintf(&code, "%s%s%s%%x%d = icmp sle i32 %%x%d, %%x%d\n", $1->code, $3->code, conversion, $$->var, var1, var3);
                                                 $$->code = code;
                                                }
-| comparison_expression EQ_OP shift_expression {//printf("comparison_expression -> comparison_expression EQ_OP shift_expression  \n");
+| comparison_expression EQ_OP shift_expression {printf("comparison_expression -> comparison_expression EQ_OP shift_expression  \n");
                                                 $$ = new_expr();
                                                 $$->var = new_var();
-                                                $$->t = new_type(TYPE_INT);
+                                                $$->t = new_type(TYPE_BOOL);
                                                 char *code;
                                                 int var1 = $1->var;
                                                 int var3 = $3->var;
@@ -785,10 +877,10 @@ comparison_expression
                                                 asprintf(&code, "%s%s%s%%x%d = icmp eq i32 %%x%d, %%x%d\n", $1->code, $3->code, conversion, $$->var, var1, var3);
                                                 $$->code = code;
                                                }
-| comparison_expression NE_OP shift_expression {//printf("comparison_expression -> comparison_expression NE_OP shift_expression \n");
+| comparison_expression NE_OP shift_expression {printf("comparison_expression -> comparison_expression NE_OP shift_expression \n");
                                                 $$ = new_expr();
                                                 $$->var = new_var();
-                                                $$->t = new_type(TYPE_INT);
+                                                $$->t = new_type(TYPE_BOOL);
                                                 char *code;
                                                 int var1 = $1->var;
                                                 int var3 = $3->var;
@@ -818,7 +910,7 @@ comparison_expression
 
 expression
 : unary_expression assignment_operator conditional_expression 
-     {//printf("expression -> unary_expression assignment_operator conditional_expression  \n");
+     {printf("expression -> unary_expression assignment_operator conditional_expression  \n");
      $$ = new_expr();
      char *code;
      char *conversion = "";
@@ -867,59 +959,59 @@ expression
       else{
         asprintf(&signe, "f%s", $2->code);
       }
-      asprintf(&code, "%s%%x%d = load %s, %s* %%%s\n%s%%x%d = %s %s %%x%d, %%x%d\nstore %s %%x%d, %s* %s\n", $3->code, var_tmp, name_of_type($1->t->tb), name_of_type($1->t->tb), $1->name, conversion, var_res, signe, name_of_type($1->t->tb), var_tmp, var3,name_of_type($1->t->tb), var_res, name_of_type($1->t->tb), $1->name);
+      asprintf(&code, "%s%%x%d = load %s, %s* %s\n%s%%x%d = %s %s %%x%d, %%x%d\nstore %s %%x%d, %s* %s\n", $3->code, var_tmp, name_of_type($1->t->tb), name_of_type($1->t->tb), $1->name, conversion, var_res, signe, name_of_type($1->t->tb), var_tmp, var3,name_of_type($1->t->tb), var_res, name_of_type($1->t->tb), $1->name);
      }
      $$->code = code;
      }
-| conditional_expression {//printf("expression -> conditional_expression \n");
+| conditional_expression {printf("expression -> conditional_expression \n");
                           $$ = cpy_expr($1);
                          }
 ;
 
 assignment_operator
-: '=' {//printf("assignment_operator -> '='  \n");
+: '=' {printf("assignment_operator -> '='  \n");
        $$ = new_expr();
        char *code;
        asprintf(&code, "store");
        $$->code = code;
        }
-| MUL_ASSIGN {//printf("assignment_operator -> MUL_ASSIGN  \n");
+| MUL_ASSIGN {printf("assignment_operator -> MUL_ASSIGN  \n");
               $$ = new_expr();
               char *code;
               asprintf(&code, "mul");
               $$->code = code;
              }
-| DIV_ASSIGN {//printf("assignment_operator -> DIV_ASSIGN  \n");
+| DIV_ASSIGN {printf("assignment_operator -> DIV_ASSIGN  \n");
               $$ = new_expr();
               char *code;
               asprintf(&code, "div");
               $$->code = code;
              }
-| REM_ASSIGN {//printf("assignment_operator -> REM_ASSIGN \n");
+| REM_ASSIGN {printf("assignment_operator -> REM_ASSIGN \n");
               $$ = new_expr();
               char *code;
               asprintf(&code, "srem");
               $$->code = code;
              }
-| SHL_ASSIGN {//printf("assignment_operator -> SHL_ASSIGN \n");
+| SHL_ASSIGN {printf("assignment_operator -> SHL_ASSIGN \n");
               $$ = new_expr();
               char *code;
               asprintf(&code, "shl");
               $$->code = code;
              }
-| SHR_ASSIGN {//printf("assignment_operator -> SHR_ASSIGN  \n");
+| SHR_ASSIGN {printf("assignment_operator -> SHR_ASSIGN  \n");
               $$ = new_expr();
               char *code;
               asprintf(&code, "ashr");
               $$->code = code;
              }
-| ADD_ASSIGN {//printf("assignment_operator -> ADD_ASSIGN  \n");
+| ADD_ASSIGN {printf("assignment_operator -> ADD_ASSIGN  \n");
               $$ = new_expr();
               char *code;
               asprintf(&code, "add");
               $$->code = code;
              }
-| SUB_ASSIGN {//printf("assignment_operator -> SUB_ASSIGN \n");
+| SUB_ASSIGN {printf("assignment_operator -> SUB_ASSIGN \n");
               $$ = new_expr();
               char *code;
               asprintf(&code, "sub");
@@ -928,15 +1020,15 @@ assignment_operator
 ;
 
 declaration
-: type_name declarator_list ';' {//printf("declaration -> type_name declarator_list ';' \n");
+: type_name declarator_list ';' {printf("declaration -> type_name declarator_list ';' \n");
                                  $$ = new_expr();
-                                 char *code1;
-                                 asprintf(&code1, "");
+                                 char *code1 = "";
                                  $$->code = code1;
                                  char code[1024] = "";
                                  char *list = "";
                                  struct expr *e;
-                                 char *tab[strlen($2->code)];
+                                 char **tab;
+                                 tab = malloc(sizeof(char));
                                  int nb_var = list_of_variable($2->code, tab);
                                  char *code_expr[nb_var];
                                  for(int i = 0; i < nb_var; i++){
@@ -944,7 +1036,7 @@ declaration
                                     e->t = new_type(type_of_name($1->code));
                                     e->var = new_var();
                                     asprintf(&list, "%s = alloca %s\n", e->name, $1->code);
-                                    asprintf(&code_expr[i], "");
+                                    //asprintf(&code_expr[i], "");
                                     e->code = code_expr[i];
                                     strcat(code, list);
                                  }
@@ -953,14 +1045,14 @@ declaration
 ;
 
 declarator_list
-: declarator {//printf("declarator_list -> declarator \n");
+: declarator {printf("declarator_list -> declarator \n");
               $$ = cpy_expr($1);
               /*$$ = new_expr();
               char *code;
               asprintf(&code, "%s", $1->code);
               $$->code = code;*/
              }
-| declarator_list ',' declarator {//printf("declarator_list -> declarator_list ',' declarator \n");
+| declarator_list ',' declarator {printf("declarator_list -> declarator_list ',' declarator \n");
               $$ = new_expr();
               char *code;
               asprintf(&code, "%s %s", $1->code, $3->code);
@@ -968,21 +1060,21 @@ declarator_list
 ;
 
 type_name
-: VOID {//printf("type_name -> VOID  \n");
+: VOID {printf("type_name -> VOID  \n");
        $$ = new_expr();
        $$->t = new_type(TYPE_VOID);
        char *code;
        asprintf(&code, "void");
        $$->code = code;
        }
-| INT {//printf("type_name -> INT \n");
+| INT {printf("type_name -> INT \n");
        $$ = new_expr();
        $$->t = new_type(TYPE_INT);
        char *code;
        asprintf(&code, "i32");
        $$->code = code;
       }
-| DOUBLE {//printf("type_name -> DOUBLE \n");
+| DOUBLE {printf("type_name -> DOUBLE \n");
           $$ = new_expr();
           $$->t = new_type(TYPE_DOUBLE);
           char *code;
@@ -992,7 +1084,7 @@ type_name
 ;
 
 declarator
-: IDENTIFIER {//printf("declarator -> IDENTIFIER (%s)\n", $1);
+: IDENTIFIER {printf("declarator -> IDENTIFIER (%s)\n", $1);
               if(find_tab(tab_symbol->head->tab, $1) != NULL){
                 error++;
                 couleur("31");
@@ -1003,7 +1095,7 @@ declarator
               }
               struct expr* e = new_expr();
               //e->var = new_var();
-              char *code;
+              char *code = NULL;
               char *name;
               asprintf(&code, "%s",$1);
               e->code = code;
@@ -1012,16 +1104,16 @@ declarator
               add_list(tab_symbol, e, $1);
               $$ = e;
               } //ajouter dans la table de hachage(table des symboles) le nom de la variable $1 (=IDENTIFIER)
-| '(' declarator ')' {//printf("declarator -> '(' declarator ')' \n");
+| '(' declarator ')' {printf("declarator -> '(' declarator ')' \n");
                       $$ = cpy_expr($2);
                      }
-| declarator '(' parameter_list ')' {//printf("declarator -> declarator '(' parameter_list ')' \n");
+| declarator '(' parameter_list ')' {printf("declarator -> declarator '(' parameter_list ')' \n");
                                      $$ = new_expr();
                                      char *code;
                                      asprintf(&code, "%s(%s)", $1->code, $3->code);
                                      $$->code = code;
                                     }
-| declarator '(' ')' {//printf("declarator -> declarator '(' ')' \n");
+| declarator '(' ')' {printf("declarator -> declarator '(' ')' \n");
                       $$ = new_expr();
                       char *code;
                       asprintf(&code, "%s()", $1->code);
@@ -1031,19 +1123,19 @@ declarator
 ;
 
 parameter_list
-: parameter_declaration {//printf("parameter_list -> parameter_declaration \n"); 
+: parameter_declaration {printf("parameter_list -> parameter_declaration \n"); 
                          $$ = cpy_expr($1);
                         }
-| parameter_list ',' parameter_declaration {//printf("parameter_list -> parameter_list ',' parameter_declaration \n");
+| parameter_list ',' parameter_declaration {printf("parameter_list -> parameter_list ',' parameter_declaration \n");
                                             $$ = new_expr();
                                             char *code;
-                                            asprintf(&code, "%s %s", $1->code, $3->code);
+                                            asprintf(&code, "%s, %s", $1->code, $3->code);
                                             $$->code = code;
                                            }
 ;
 
 parameter_declaration
-: type_name declarator {//printf("parameter_declaration -> type_name declarator  \n");
+: type_name declarator {printf("parameter_declaration -> type_name declarator  \n");
                         $$ = new_expr();
                         char *code;
                         char *name;
@@ -1052,45 +1144,45 @@ parameter_declaration
                         asprintf(&code, "%s %%%s", $1->code, $2->code);
                         struct expr *e = find_list(tab_symbol, $2->code);
                         e->t = new_type(type_of_name($1->code));
-                        strcat(e->name, ".addr");
+                        asprintf(&e->name, "%s.addr", e->name);
                         strcat(name, " ");
                         strcat(name_arg, name);
-                        asprintf(&alloc, "%%%s = alloca %s\nstore %s %%%s, %s* %%%s\n", e->name, name_of_type(e->t->tb), name_of_type(e->t->tb), name, name_of_type(e->t->tb), e->name);
+                        asprintf(&alloc, "%s = alloca %s\nstore %s %%%s, %s* %s\n", e->name, name_of_type(e->t->tb), name_of_type(e->t->tb), name, name_of_type(e->t->tb), e->name);
                         strcat(alloc_param, alloc);
                         $$->code = code;
                        }
 ;
 
 statement
-: compound_statement {//printf("statement -> compound_statement \n");
+: compound_statement {printf("statement -> compound_statement \n");
                       $$ = cpy_expr($1);
           /*$$ = new_expr();
                       char *code;
                       asprintf(&code, "%s", $1->code);
                       $$->code = code;*/
                      }
-| expression_statement {//printf("statement -> expression_statement \n");
+| expression_statement {printf("statement -> expression_statement \n");
                         $$ = cpy_expr($1);
                         /*$$ = new_expr();
                         char *code;
                         asprintf(&code, "%s", $1->code);
                         $$->code = code;*/
                        }
-| selection_statement {//printf("statement -> selection_statement \n");
+| selection_statement {printf("statement -> selection_statement \n");
                        $$ = cpy_expr($1);
                        /*$$ = new_expr();
                        char *code;
                        asprintf(&code, "%s", $1->code);
                        $$->code = code;*/
                       }
-| iteration_statement {//printf("statement -> iteration_statement \n");
+| iteration_statement {printf("statement -> iteration_statement \n");
                        $$ = cpy_expr($1);
                        /*$$ = new_expr();
                        char *code;
                        asprintf(&code, "%s", $1->code);
                        $$->code = code;*/
                       }
-| jump_statement {//printf("statement -> jump_statement \n");
+| jump_statement {printf("statement -> jump_statement \n");
                   $$ = cpy_expr($1);
                   /*$$ = new_expr();
                   char *code;
@@ -1100,33 +1192,33 @@ statement
 ;
 
 compound_statement
-: '{' '}' {//printf("compound_statement -> '{' '}' \n"); 
+: '{' '}' {printf("compound_statement -> '{' '}' \n"); 
            $$ = new_expr(); 
            $$->code = "";
           }
-| '{' statement_list '}' {//printf("compound_statement -> '{' statement_list '}' \n");
+| '{' statement_list '}' {printf("compound_statement -> '{' statement_list '}' \n");
                           $$ = cpy_expr($2);
                           }
-| '{' declaration_list statement_list '}' {//printf("compound_statement -> '{' declaration_list statement_list '}' \n");
+| '{' declaration_list statement_list '}' {printf("compound_statement -> '{' declaration_list statement_list '}' \n");
                                            $$ = new_expr();
                                            char *code;
                                            asprintf(&code, "%s%s", $2->code, $3->code);
                                            $$->code = code;
                                           }
-| '{' declaration_list '}' {//printf("compound_statement -> '{' declaration_list '}' \n");
+| '{' declaration_list '}' {printf("compound_statement -> '{' declaration_list '}' \n");
                             $$ = cpy_expr($2);
                            }
 ;
 
 declaration_list
-: declaration {//printf("declaration_list -> declaration \n");
+: declaration {printf("declaration_list -> declaration \n");
                $$ = cpy_expr($1);
                /*$$ = new_expr();
                char *code;
                asprintf(&code, "%s", $1->code);
                $$->code = code;*/
               }
-| declaration_list declaration {//printf("declaration_list -> declaration_list declaration \n");
+| declaration_list declaration {printf("declaration_list -> declaration_list declaration \n");
                                 $$ = new_expr();
                                 char *code;
                                 asprintf(&code, "%s%s", $1->code, $2->code);
@@ -1135,14 +1227,14 @@ declaration_list
 ;
 
 statement_list
-: statement {//printf("statement_list -> statement \n");
+: statement {printf("statement_list -> statement \n");
 
              $$ = new_expr();
              char *code;
              asprintf(&code, "%s", $1->code);
              $$->code = code;
             }
-| statement_list statement {//printf("statement_list -> statement_list statement \n");
+| statement_list statement {printf("statement_list -> statement_list statement \n");
                             $$ = new_expr();
                             char *code;
                             asprintf(&code, "%s%s", $1->code, $2->code);
@@ -1151,13 +1243,12 @@ statement_list
 ;
 
 expression_statement
-: ';' {//printf("expression_statement -> ';'  \n");
+: ';' {printf("expression_statement -> ';'  \n");
        $$ = new_expr();
-       char *code;
-       asprintf(&code, "");
+       char *code = "";
        $$->code = code;
       }
-| expression ';' {//printf("expression_statement -> expression ';' \n");
+| expression ';' {printf("expression_statement -> expression ';' \n");
                   $$ = new_expr();
                   char *code;
                   asprintf(&code, "%s", $1->code);
@@ -1166,7 +1257,7 @@ expression_statement
 ;
 
 selection_statement
-: IF '(' expression ')' statement {//printf("selection_statement -> IF '(' expression ')' statement \n");
+: IF '(' expression ')' statement {printf("selection_statement -> IF '(' expression ')' statement \n");
                                    $$ = new_expr();
                                    char *code;
                                    char *label_if = new_label();
@@ -1174,7 +1265,7 @@ selection_statement
                                    asprintf(&code, "%sbr i1 %%x%d, label %%%s, label %%%s\n\n%s:\n%sbr label %%%s\n\n%s:\n", $3->code, $3->var, label_if, label_end, label_if, $5->code, label_end, label_end);
                                    $$->code = code;
                                   }
-| IF '(' expression ')' statement ELSE statement {//printf("selection_statement -> IF '(' expression ')' statement ELSE statement \n");
+| IF '(' expression ')' statement ELSE statement {printf("selection_statement -> IF '(' expression ')' statement ELSE statement \n");
                                                   $$ = new_expr();
                                                   char *code;
                                                   char *label_if = new_label();
@@ -1183,7 +1274,7 @@ selection_statement
                                                   asprintf(&code, "%sbr i1 %%x%d, label %%%s, label %%%s\n\n%s:\n%sbr label %%%s\n\n%s:\n%sbr label %%%s\n\n%s:\n", $3->code, $3->var, label_if, label_else, label_if, $5->code, label_end, label_else, $7->code, label_end, label_end);
                                                   $$->code = code;
                                                  }
-| FOR '(' expression ';' expression ';' expression ')' statement {//printf("selection_statement -> FOR '(' expression ';' expression ';' expression ')' statement \n");
+| FOR '(' expression ';' expression ';' expression ')' statement {printf("selection_statement -> FOR '(' expression ';' expression ';' expression ')' statement \n");
                                                                   $$ = new_expr();
                                                                   char *label_cond = new_label();
                                                                   char *label_body = new_label();
@@ -1199,7 +1290,7 @@ selection_statement
                                                                   asprintf(&code, "%s%s%s", code_cond, code_body, code_inc);
                                                                   $$->code = code;
                                                                  }
-| FOR '(' expression ';' expression ';'            ')' statement {//printf("selection_statement -> FOR '(' expression ';' expression ';'            ')' statement \n");
+| FOR '(' expression ';' expression ';'            ')' statement {printf("selection_statement -> FOR '(' expression ';' expression ';'            ')' statement \n");
                                                                   $$ = new_expr();
                                                                   char *label_cond = new_label();
                                                                   char *label_body = new_label();
@@ -1215,7 +1306,7 @@ selection_statement
                                                                   asprintf(&code, "%s%s%s", code_cond, code_body, code_inc);
                                                                   $$->code = code;
                                                                  }
-| FOR '(' expression ';'            ';' expression ')' statement {//printf("selection_statement -> FOR '(' expression ';'            ';' expression ')' statement \n");
+| FOR '(' expression ';'            ';' expression ')' statement {printf("selection_statement -> FOR '(' expression ';'            ';' expression ')' statement \n");
                                                                   $$ = new_expr();
                                                                   char *label_cond = new_label();
                                                                   char *label_body = new_label();
@@ -1231,7 +1322,7 @@ selection_statement
                                                                   asprintf(&code, "%s%s%s", code_cond, code_body, code_inc);
                                                                   $$->code = code;
                                                                  }
-| FOR '(' expression ';'            ';'            ')' statement {//printf("selection_statement -> FOR '(' expression ';'            ';'            ')' statement \n");
+| FOR '(' expression ';'            ';'            ')' statement {printf("selection_statement -> FOR '(' expression ';'            ';'            ')' statement \n");
                                                                   $$ = new_expr();
                                                                   char *label_cond = new_label();
                                                                   char *label_body = new_label();
@@ -1247,7 +1338,7 @@ selection_statement
                                                                   asprintf(&code, "%s%s%s", code_cond, code_body, code_inc);
                                                                   $$->code = code;
                                                                  }
-| FOR '('            ';' expression ';' expression ')' statement {//printf("selection_statement -> FOR '('            ';' expression ';' expression ')' statement \n");
+| FOR '('            ';' expression ';' expression ')' statement {printf("selection_statement -> FOR '('            ';' expression ';' expression ')' statement \n");
                                                                   $$ = new_expr();
                                                                   char *label_cond = new_label();
                                                                   char *label_body = new_label();
@@ -1263,7 +1354,7 @@ selection_statement
                                                                   asprintf(&code, "%s%s%s", code_cond, code_body, code_inc);
                                                                   $$->code = code;
                                                                  }
-| FOR '('            ';' expression ';'            ')' statement {//printf("selection_statement -> FOR '('            ';' expression ';'            ')' statement \n");
+| FOR '('            ';' expression ';'            ')' statement {printf("selection_statement -> FOR '('            ';' expression ';'            ')' statement \n");
                                                                   $$ = new_expr();
                                                                   char *label_cond = new_label();
                                                                   char *label_body = new_label();
@@ -1279,7 +1370,7 @@ selection_statement
                                                                   asprintf(&code, "%s%s%s", code_cond, code_body, code_inc);
                                                                   $$->code = code;
                                                                  }
-| FOR '('            ';'            ';' expression ')' statement {//printf("selection_statement -> FOR '('            ';'            ';' expression ')' statement \n");
+| FOR '('            ';'            ';' expression ')' statement {printf("selection_statement -> FOR '('            ';'            ';' expression ')' statement \n");
                                                                   $$ = new_expr();
                                                                   char *label_cond = new_label();
                                                                   char *label_body = new_label();
@@ -1295,7 +1386,7 @@ selection_statement
                                                                   asprintf(&code, "%s%s%s", code_cond, code_body, code_inc);
                                                                   $$->code = code;
                                                                  }
-| FOR '('            ';'            ';'            ')' statement {//printf("selection_statement -> FOR '('            ';'            ';'            ')' statement \n");
+| FOR '('            ';'            ';'            ')' statement {printf("selection_statement -> FOR '('            ';'            ';'            ')' statement \n");
                                                                   $$ = new_expr();
                                                                   char *label_cond = new_label();
                                                                   char *label_body = new_label();
@@ -1314,7 +1405,7 @@ selection_statement
 ;
 
 iteration_statement
-: WHILE '(' expression ')' statement {//printf("iteration_statement -> WHILE '(' expression ')' statement \n");
+: WHILE '(' expression ')' statement {printf("iteration_statement -> WHILE '(' expression ')' statement \n");
                                       $$ = new_expr();
                                       char *label_cond = new_label();
                                       char *label_body = new_label();
@@ -1327,7 +1418,7 @@ iteration_statement
                                       asprintf(&code, "%s%s", code_cond, code_body);
                                       $$->code = code;
                                      }
-| DO statement WHILE '(' expression ')' {//printf("iteration_statement -> DO statement WHILE '(' expression ')' \n");
+| DO statement WHILE '(' expression ')' {printf("iteration_statement -> DO statement WHILE '(' expression ')' \n");
                                          $$ = new_expr();
                                          char *label_body = new_label();
                                          char *label_cond = new_label();
@@ -1343,25 +1434,28 @@ iteration_statement
 ;
 
 jump_statement
-: RETURN ';' {//printf("jump_statement -> RETURN ';' \n");
+: RETURN ';' {printf("jump_statement -> RETURN ';' \n");
               $$ = new_expr();
               char *code;
               type_return_function = 2;
               asprintf(&code, "ret void\n");
               $$->code = code;
              }
-| RETURN expression ';' {//printf("jump_statement -> RETURN expression ';' \n");
+| RETURN expression ';' {printf("jump_statement -> RETURN expression ';' \n");
                          $$ = new_expr();
+                         if(var_return == -1){
+                          var_return = new_var();
+                         }
                          char *code;
                          type_return_function = $2->t->tb;
-                         var_return = $2->var;
-                         asprintf(&code, "%sret %s %%x%d", $2->code, name_of_type($2->t->tb), $2->var);
+                         asprintf(&code, "%sstore %s %%x%d, %s* %%x%d\n", $2->code, name_of_type($2->t->tb), $2->var, name_of_type($2->t->tb), var_return);
+                         //asprintf(&code, "%sret %s %%x%d\n", $2->code, name_of_type($2->t->tb), $2->var);
                          $$->code = code;
                         }
 ;
 
 main
-: program {//printf("main -> program \n\n\n");
+: program {printf("main -> program \n\n\n");
            $$ = new_expr();
            char *code;
            char *function;
@@ -1376,13 +1470,13 @@ main
 ;
 
 program
-: external_declaration {//printf("program -> external_declaration \n");
+: external_declaration {printf("program -> external_declaration \n");
                         $$ = new_expr();
                         char *code;
                         asprintf(&code, "%s", $1->code);
                         $$->code = code;
                        }
-| program external_declaration {//printf("program -> program external_declaration \n");
+| program external_declaration {printf("program -> program external_declaration \n");
                                 $$ = new_expr();
                                 char *code;
                                 asprintf(&code, "%s%s", $1->code, $2->code);
@@ -1391,13 +1485,13 @@ program
 ;
 
 external_declaration
-: function_definition {//printf("external_declaration -> function_definition \n");
+: function_definition {printf("external_declaration -> function_definition \n");
                        $$ = new_expr();
                        char *code;
                        asprintf(&code, "%s", $1->code);
                        $$->code = code;                       
                        }
-| declaration {//printf("external_declaration -> declaration \n");
+| declaration {printf("external_declaration -> declaration \n");
                $$ = new_expr();
                char *code, arg[1024] = "";
                char **tab;
@@ -1420,17 +1514,19 @@ external_declaration
 ;
 
 function_definition
-: type_name declarator compound_statement {//printf("function_definition -> type_name declarator compound_statement \n");
+: type_name declarator compound_statement {printf("function_definition -> type_name declarator compound_statement \n");
                                           $$ = new_expr();
                                           char *code;
                                           char function_name[1024];
                                           struct expr *expr_arg;
+                                          int var_r;
+                                          char *name_var_return;
                                           name_of_function($2->code, function_name);
                                           if(strcmp($1->code, "void") == 0){
                                             if(type_return_function == -1){//Ok pas de return
                                               asprintf(&code, "\ndefine %s @%s {\n%s%sret void\n}\n", $1->code, $2->code, alloc_param, $3->code);                                      
                                             }
-                                            else if(type_return_function == 2){
+                                            else if(type_return_function == 2){//Return vide
                                               asprintf(&code, "\ndefine %s @%s {\n%s%s\n}\n", $1->code, $2->code, alloc_param, $3->code);                                      
                                             }
                                             else{
@@ -1444,36 +1540,30 @@ function_definition
                                           }
                                           else{
                                             if(type_return_function == -1){
-                                              couleur("35");
-                                              printf("Attention : ");
+                                              error ++;
+                                              couleur("31");
+                                              printf("Erreur : ");
                                               couleur("0");
                                               printf("Pas de valeur de retour pour la fonction %s qui doit retourner une valeur à la ligne %d\n", function_name, yylineno);
+                                              return 1;
                                             }
-                                            if($1->t->tb != type_return_function){
+                                            asprintf(&name_var_return, "%%x%d", var_return);
+                                            char *conv = conv_ret($3->code, $1->t->tb, name_var_return);
+                                            if(strlen(conv) > strlen($3->code)){
                                               couleur("35");
                                               printf("Attention : ");
                                               couleur("0");
                                               printf("Conversion de type implicite à la ligne %d\n", yylineno);
-                                              char *conversion;
-                                              char *last_line;
-                                              int conv = new_var();
-                                              if($1->t->tb == TYPE_INT){
-                                                asprintf(&last_line, "ret double %%x%d", var_return);
-                                                asprintf(&conversion, "%%x%d = fptosi double %%x%d to i32\nret i32 %%x%d", conv, var_return, conv);
-                                              }
-                                              else{
-                                                asprintf(&last_line, "ret i32 %%x%d", var_return);
-                                                asprintf(&conversion, "%%x%d = sitofp i32 %%x%d to double\nret double %%x%d", conv, var_return, conv);
-                                              }
-                                              replace_last_line($3->code, conversion, last_line);
                                             }
-                                            asprintf(&code, "\ndefine %s @%s {\n%s%s\n}\n", $1->code, $2->code, alloc_param, $3->code);
+                                            var_r = new_var();
+                                            asprintf(&code, "\ndefine %s @%s {\n%%x%d = alloca %s\n%s%s%%x%d = load %s, %s* %%x%d\nret %s %%x%d\n}\n", $1->code, $2->code, var_return, name_of_type($1->t->tb), alloc_param, conv, var_r, name_of_type($1->t->tb), name_of_type($1->t->tb), var_return, name_of_type($1->t->tb), var_r);
                                           }
                                           $$->code = code;
                                           struct expr *expr_function = find_list(tab_symbol, function_name);
                                           expr_function->t = new_type(type_of_name($1->code));
                                           expr_function->t->is_function = 1;
-                                          char *tab_arg[strlen(name_arg)];
+                                          char **tab_arg;
+                                          tab_arg = malloc(sizeof(char));
                                           int nb_args = list_of_variable(name_arg, tab_arg);
                                           expr_function->t->nb_args = nb_args;
                                           expr_function->t->args = malloc(sizeof(struct type) * nb_args);
