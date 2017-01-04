@@ -25,6 +25,7 @@ struct expr * cpy_expr(struct expr *e){
 	new->var = e->var;
 	new->real = e->real;
 	new->use = e->use;
+	new->real_name = e->real_name;
 	new->code = code;
 	new->name = name;
 	new->t = cpy_type(e->t);
