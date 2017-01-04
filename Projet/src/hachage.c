@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-
+#include "utils.h"
 #include "hachage.h"
 
 
@@ -27,8 +27,9 @@ struct tab_hach *new_tab(){
 int add_tab(struct tab_hach *tab, struct expr *e, char *name){
 	struct symbol *new = new_symbol(name,e);
 	int hach = fn_hachage(name);
-	if(tab->tab[hach] != NULL)
+	if(tab->tab[hach] != NULL){
 		return 1;
+	}
 	tab->tab[hach] = new;
 	return 0;
 }
@@ -49,7 +50,15 @@ void delete_element(struct tab_hach *tab, char *name){
 
 void delete_tab(struct tab_hach *tab){
 	for(int i =0; i<SIZE; i++)
-		if(tab->tab[i] != NULL)
+		if(tab->tab[i] != NULL){
+			//printf("%s %d %d\n", tab->tab[i]->e->name, tab->tab[i]->e->real, tab->tab[i]->e->use);
+			if(tab->tab[i]->e->real == 1 && tab->tab[i]->e->use == 0){
+				couleur("35");
+		      	printf("Attention : ");
+		      	couleur("0");
+		      	printf("Variable %s inutilisée\n", tab->tab[i]->e->real_name);
+			}
 			free(tab->tab[i]);
+		}
 	free(tab);
 }

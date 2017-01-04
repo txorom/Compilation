@@ -61,6 +61,10 @@ int list_of_args(char *src, char **dest){
 	while(*src != '\0'){
 		i = 0;
 		src ++;
+		while(*src != '_'){
+			src++;
+		}
+		src++;
 		while(*src != ' ' && *src != '\n'){
 			buf[i] = *src;
 			i++;
@@ -177,7 +181,7 @@ char *conv_ret(char *src, enum type_base t, char *var){
 	char type1[10], var1[20], var_r[20], store[10], type2[10];
 	int nb_conv = 0, length_conv, var_conv, length_old_line = 0;
 	int n = strlen(src);
-	char *buf = malloc(sizeof(char) * n), *conv, *old_line;
+	char *buf = malloc(sizeof(char) * n), *conv = NULL, *old_line = NULL;
 	int i = 0;
 	while(*src != '\0'){
 		if(*src == 's'){
@@ -185,7 +189,6 @@ char *conv_ret(char *src, enum type_base t, char *var){
 				if(*(src+2) != '\0' && *(src+2) == 'o'){
 					if(*(src+3) != '\0' && *(src+3) == 'r'){
 						if(*(src+4) != '\0' && *(src+4) == 'e'){
-							printf("ok\n");
 							sscanf(src, "%s %s %s %s %s", store, type1, var1, type2, var_r);
 							if(strcmp(var_r, var) == 0){
 								if(strcmp(type1, name_of_type(t)) != 0){
@@ -198,12 +201,10 @@ char *conv_ret(char *src, enum type_base t, char *var){
 										asprintf(&conv, "%%x%d = sitofp i32 %s to double\nstore double %%x%d, double* %s", var_conv, var1, var_conv, var_r);
 									}
 									asprintf(&old_line, "%s %s %s %s %s", store, type1, var1, type2, var_r);
-									printf("%s\n", old_line);
 									length_old_line += strlen(old_line);
 									length_conv = strlen(conv);
 									buf = realloc(buf, sizeof(char) * (n + length_conv));
 									asprintf(&buf, "%s%s", buf, conv);
-									printf("%s\n", conv);
 									i += length_conv;
 									src += length_old_line + 1;							
 									nb_conv ++;
@@ -219,8 +220,11 @@ char *conv_ret(char *src, enum type_base t, char *var){
 		i++;
 		src++;
 	}
+	buf[i] = '\0';
 	asprintf(&src, "%s", buf);
-	printf("%s\n", src);
-	return buf;
+	free(buf);
+	free(conv);
+	free(old_line);
+	return src;
 }
 

@@ -1,0 +1,3 @@
+[31mErreur : [0mVariable "a" redéfinie à la ligne 7
+[35mAttention : [0mVariable a inutilisée
+[35mAttention : [0mVariable b inutilisée

@@ -1,5 +1,6 @@
 #ifndef _UTILS_
 #define _UTILS_
+#define couleur(param) printf("\033[%sm",param)
 #include "type.h"
 #include "expr.h"
 

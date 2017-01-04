@@ -15,5 +15,7 @@ struct type{
 struct type *new_type(enum type_base);
 char * name_of_type(enum type_base t);
 enum type_base type_of_name(char * c);
+struct type* cpy_type(struct type *t);
+void free_type(struct type*t);
 
 #endif

@@ -3,6 +3,7 @@ YACC=bison
 CFLAGS=-Wall -g
 CC=gcc
 
+
 all:parse
 
 parse:grammar.c scanner.c type.c utils.c expr.c liste.c hachage.c
@@ -14,5 +15,12 @@ grammar.c:grammar.y
 %.c:%.l
 	$(LEX) -o $@ $^
 
+test: parse
+	@for i in `seq 1 23`; \
+	do \
+		./parse "../tst/test"$$i".c" > "../tst/resbis"$$i".txt"; \
+	done; \
+	bash script.sh
+
 clean:
-	rm -f grammar.c scanner.c *~ parse
+	rm -f grammar.c scanner.c *~ parse *.ll ../tst/*.ll ../tst/resbis*

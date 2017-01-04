@@ -1,0 +1,1 @@
+[31mErreur : [0m"a" n'est pas une fonction à la ligne 7

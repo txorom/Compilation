@@ -1,0 +1,1 @@
+[31mErreur : [0mVariable "b" inconnue à la ligne 12

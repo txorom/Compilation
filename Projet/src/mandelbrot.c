@@ -22,6 +22,7 @@ void my_draw()
   double centerr;
   double centeri;
   double m;
+  double d;
   double a;
   double b;
   double color;
@@ -42,16 +43,19 @@ void my_draw()
       for (n = 0; n <= maxiter && m < bail_out * bail_out; n ++) {
         a=zr*zr-zi*zi+cr;
         b=2*zr*zi+ci;
-    	   zr=a;
-    	zi=b;
-    	m=a*a+b*b;
+    	  zr=a;
+    	  zi=b;
+    	  m=a*a+b*b;
       }
 
       /* Paint the pixel calculated depending on the number
 	 of iterations found */
-      if (n<maxiter)
-	   color= n / maxiter * 255;
-      else color=0;
+      if (n<maxiter){
+	      color = (n / maxiter) * 255;
+      }
+      else{
+        color=0;
+      }
 
       stroke(color);
       point(x, y);

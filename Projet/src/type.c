@@ -31,3 +31,26 @@ enum type_base type_of_name(char * c){
 		return TYPE_VOID;
 
 }
+
+struct type* cpy_type(struct type *t){
+	if(t != NULL){
+		struct type *new = new_type(t->tb);
+		new->is_function = t->is_function;
+		new->nb_args = t->nb_args;
+		if(new->nb_args){
+			new->args = malloc(sizeof(enum type_base) * new->nb_args);
+			for(int i = 0; i < new->nb_args; i++){
+				new->args[i] = t->args[i];
+			}
+		}
+		return new;
+	}
+	return NULL;
+}
+
+void free_type(struct type *t){
+	if(t->nb_args != 0){
+		free(t->args);
+	}
+	free(t);
+}
