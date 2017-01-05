@@ -40,7 +40,7 @@ void my_draw()
       ci=centeri + (y - (h/2))/zoom;
       zi=ci;
       /* Applies the actual mandelbrot formula on that point */
-      for (n = 0; n <= maxiter && m < bail_out * bail_out; n ++) {
+      for (n = 0; n < maxiter && m < bail_out * bail_out; n++) {
         a=zr*zr-zi*zi+cr;
         b=2*zr*zi+ci;
     	  zr=a;

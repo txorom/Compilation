@@ -314,7 +314,7 @@ primary_expression
                                                   couleur("31");
                                                   printf("Erreur : ");
                                                   couleur("0");
-                                                  printf("Il n'y a pas le nombre d'argument pour l'appel de la fonction \"%s\" à la ligne %d : il en faut %d et il y en a %d \n", $1, yylineno, e->t->nb_args, nb_args);
+                                                  printf("Il n'y a pas le bon nombre d'argument pour l'appel de la fonction \"%s\" à la ligne %d : il en faut %d et il y en a %d \n", $1, yylineno, e->t->nb_args, nb_args);
                                                   return 1;
                                                }
                                                //Conversion de type si on a pas le bon
@@ -790,7 +790,7 @@ comparison_expression
                                                   couleur("0");
                                                   printf("Conversion de type implicite à la ligne %d\n", yylineno);
                                                 }                                                
-                                                asprintf(&code, "%s%s%s%%x%d = icmp sge i32 %%x%d, %%x%d\n", $1->code, $3->code, conversion, $$->var, var1, var3);
+                                                asprintf(&code, "%s%s%s%%x%d = icmp sle i32 %%x%d, %%x%d\n", $1->code, $3->code, conversion, $$->var, var1, var3);
                                                 $$->code = code;
                                                 free_expr(&$1);
                                                 free_expr(&$3);
@@ -821,7 +821,7 @@ comparison_expression
                                                   couleur("0");
                                                   printf("Conversion de type implicite à la ligne %d\n", yylineno);
                                                 }
-                                                asprintf(&code, "%s%s%s%%x%d = icmp sle i32 %%x%d, %%x%d\n", $1->code, $3->code, conversion, $$->var, var1, var3);
+                                                asprintf(&code, "%s%s%s%%x%d = icmp sge i32 %%x%d, %%x%d\n", $1->code, $3->code, conversion, $$->var, var1, var3);
                                                 $$->code = code;
                                                 free_expr(&$1);
                                                 free_expr(&$3);
@@ -914,6 +914,7 @@ expression
       asprintf(&conversion, "%%x%d = sitofp i32 %%x%d to double\n", var3, $3->var);
      }
      if(strcmp($2->code, "store") == 0){
+      init($1, tab_symbol);
       asprintf(&code, "%s%s%s %s %%x%d, %s* %s\n", $3->code, conversion, $2->code, name_of_type($1->t->tb), var3, name_of_type($1->t->tb), $1->name);
      }
      else{
@@ -1223,8 +1224,10 @@ create_tab
 
 compound_statement
 : '{' create_tab '}' {//printf("compound_statement -> '{' '}' \n"); 
-                       $$ = new_expr(); 
-                       $$->code = "";
+                       $$ = new_expr();
+                       char *code;
+                       asprintf(&code, "");
+                       $$->code = code;
                        delete_head(tab_symbol);
                      }
 | '{' create_tab statement_list '}' {//printf("compound_statement -> '{' statement_list '}' \n");

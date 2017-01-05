@@ -6,7 +6,8 @@
 
 struct symbol *new_symbol(char *name, struct expr *ex){
 	struct symbol *s = malloc(sizeof(struct symbol));
-	s->name = name;
+	s->name = malloc(sizeof(char) * strlen(name));
+	strcpy(s->name, name);
 	s->e = ex;
 	return s;
 }
@@ -36,7 +37,7 @@ int add_tab(struct tab_hach *tab, struct expr *e, char *name){
 
 struct expr *find_tab(struct tab_hach *tab, char *name){
 	int hach = fn_hachage(name);
-	if(tab->tab[hach])
+	if(tab->tab[hach] && strcmp(tab->tab[hach]->name, name) == 0)
 		return tab->tab[hach]->e;
 	else 
 		return NULL;

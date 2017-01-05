@@ -129,8 +129,9 @@ struct expr *find_list(struct list *list, char *name){
   struct element *current = list->head;
   while(current){
     struct expr *ret = find_tab(current->tab, name);
-    if(ret)
+    if(ret){
       return ret;
+    }
     else
       current = current->next;
   }
