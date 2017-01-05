@@ -914,7 +914,6 @@ expression
       asprintf(&conversion, "%%x%d = sitofp i32 %%x%d to double\n", var3, $3->var);
      }
      if(strcmp($2->code, "store") == 0){
-      init($1, tab_symbol);
       asprintf(&code, "%s%s%s %s %%x%d, %s* %s\n", $3->code, conversion, $2->code, name_of_type($1->t->tb), var3, name_of_type($1->t->tb), $1->name);
      }
      else{
