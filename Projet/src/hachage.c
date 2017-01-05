@@ -42,21 +42,17 @@ struct expr *find_tab(struct tab_hach *tab, char *name){
 		return NULL;
 }
 
-void delete_element(struct tab_hach *tab, char *name){
-	int hach = fn_hachage(name);
-	free(tab->tab[hach]);
-	tab->tab[hach] = NULL;
-}
-
 void delete_tab(struct tab_hach *tab){
 	for(int i =0; i<SIZE; i++)
 		if(tab->tab[i] != NULL){
-			//printf("%s %d %d\n", tab->tab[i]->e->name, tab->tab[i]->e->real, tab->tab[i]->e->use);
 			if(tab->tab[i]->e->real == 1 && tab->tab[i]->e->use == 0){
 				couleur("35");
 		      	printf("Attention : ");
 		      	couleur("0");
 		      	printf("Variable %s inutilisée\n", tab->tab[i]->e->real_name);
+			}
+			if(tab->tab[i]->e != NULL){
+				free_expr(&tab->tab[i]->e);
 			}
 			free(tab->tab[i]);
 		}

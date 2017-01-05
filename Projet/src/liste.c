@@ -148,4 +148,5 @@ void delete_list(struct list *list){
    while(list->head){
     delete_head(list);
    }
+   free(list);
 }

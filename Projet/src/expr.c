@@ -33,10 +33,10 @@ struct expr * cpy_expr(struct expr *e){
 }
 
 void free_expr(struct expr **e){
-	// if((*e)->code != NULL){
-	// 	free((*e)->code);
-	// 	(*e)->code = NULL;
-	// }
+	if((*e)->code != NULL){
+		free((*e)->code);
+		(*e)->code = NULL;
+	}
 	if((*e)->name != NULL){
 		free((*e)->name);
 		(*e)->name = NULL;

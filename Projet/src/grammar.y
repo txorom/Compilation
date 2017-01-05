@@ -40,7 +40,7 @@
 %token INT DOUBLE VOID
 %token IF ELSE DO WHILE RETURN FOR
 %type <e> conditional_expression logical_or_expression logical_and_expression shift_expression primary_expression postfix_expression argument_expression_list unary_expression
-unary_operator multiplicative_expression additive_expression comparison_expression expression assignment_operator declaration declarator_list type_name declarator parameter_list parameter_declaration statement compound_statement declaration_list statement_list expression_statement selection_statement iteration_statement jump_statement main program external_declaration function_definition
+unary_operator multiplicative_expression additive_expression comparison_expression expression assignment_operator declaration declarator_list type_name declarator parameter_list parameter_declaration statement compound_statement declaration_list statement_list expression_statement selection_statement iteration_statement jump_statement program external_declaration function_definition
 %start main
 %union {
   char *string;
@@ -223,6 +223,7 @@ primary_expression
               asprintf(&code, "%%x%d = load %s, %s* %s\n", $$->var, name_of_type($$->t->tb), name_of_type($$->t->tb), e->name);
               $$->code = code;
               add_list(tab_symbol, cpy_expr($$), name_x);
+              free(name_x);
               }
 | CONSTANTI {//printf("primary_expression -> CONSTANTI (%d)\n", $1);
               $$=new_expr();
@@ -1013,19 +1014,20 @@ declaration
                                  char *list = "";
                                  struct expr *e;
                                  char **tab;
-                                 tab = malloc(sizeof(char));
+                                 tab = malloc(sizeof(char *) * strlen($2->code));
                                  int nb_var = list_of_variable($2->code, tab);
-                                 //char *code_expr[nb_var];
                                  for(int i = 0; i < nb_var; i++){
                                     e = find_list(tab_symbol, tab[i]);
                                     e->t = new_type(type_of_name($1->code));
                                     e->var = new_var();
                                     asprintf(&list, "%s = alloca %s\n", e->name, $1->code);
-                                    //e->code = code_expr[i];
                                     strcat(code1, list);
+                                    free(list);
+                                    free(tab[i]);
                                  }
                                  asprintf(&code, "%s", code1);
                                  $$->code = code;
+                                 free(tab);
                                  free_expr(&$1);
                                  free_expr(&$2);
                                  }
@@ -1205,7 +1207,7 @@ create_tab
 : {new_element(tab_symbol);
    if(nb_arg_func_decl_bis > 0){
     char **tab_arg;
-    tab_arg = malloc(sizeof(char));
+    tab_arg = malloc(sizeof(char *) * strlen(name_arg));
     list_of_variable(name_arg, tab_arg);
     for(int i = 0; i < nb_arg_func_decl_bis; i++){
       add_list(tab_symbol, expr_arg_decl[i], tab_arg[i]);
@@ -1620,16 +1622,14 @@ jump_statement
 
 main
 : program {//printf("main -> program \n\n\n");
-           $$ = new_expr();
            char *code = NULL;
-           char *function;
+           char *function = NULL;
            function = add_function_declaration();
            asprintf(&code, "%s", $1->code);
-           $$->code = code;
-           CODE = malloc(sizeof(char) * (strlen(code) + strlen(function)));
-           strcpy(CODE, function);
-           strcat(CODE, code);
+           asprintf(&CODE, "%s%s", function, code);
            free_expr(&$1);
+           free(function);
+           free(code);
           }
 ;
 
@@ -1661,26 +1661,29 @@ external_declaration
                        }
 | declaration {//printf("external_declaration -> declaration \n");
                $$ = new_expr();
-               char *code = NULL; 
-               char *arg = NULL;
-               arg = "";
+               char *code = NULL, *code_aux = NULL; 
+               char arg[1024] = "";
                char **tab;
-               tab = malloc(sizeof(char));
+               tab = malloc(sizeof(char *) * strlen($1->code));
                int nb = list_of_args($1->code, tab);
                struct expr *e[nb];
                for(int i = 0; i < nb; i++){
                  e[i] = find_list(tab_symbol, tab[i]);
                  asprintf(&e[i]->name, "@%s", tab[i]);
                  if(e[i]->t->tb == TYPE_INT){
-                  asprintf(&code, "%s = common global i32 0\n", e[i]->name);
+                  asprintf(&code_aux, "%s = common global i32 0\n", e[i]->name);
                  }
                  else{
-                  asprintf(&code, "%s = common global double %s\n", e[i]->name, double_to_hex_str(0.0));
+                  asprintf(&code_aux, "%s = common global double %s\n", e[i]->name, double_to_hex_str(0.0));
                  }
-                 asprintf(&arg, "%s%s", arg, code);
+                 strcat(arg, code_aux);
+                 free(code_aux);
+                 free(tab[i]);
               }
-               $$->code = arg;
+               asprintf(&code, "%s", arg);
+               $$->code = code;
                free_expr(&$1);
+               free(tab);
               }
 ;
 
@@ -1781,6 +1784,7 @@ int main (int argc, char *argv[]) {
       fwrite(CODE, sizeof(char), strlen(CODE), fd);
       fclose(fd);
       free(nom);
+      free(CODE);
       return 0;
     }
     free (file_name);

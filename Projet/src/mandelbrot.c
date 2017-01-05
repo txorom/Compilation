@@ -22,7 +22,7 @@ void my_draw()
   double centerr;
   double centeri;
   double m;
-  double d;
+  double doubleN;
   double a;
   double b;
   double color;
@@ -51,7 +51,8 @@ void my_draw()
       /* Paint the pixel calculated depending on the number
 	 of iterations found */
       if (n<maxiter){
-	      color = (n / maxiter) * 255;
+        doubleN = n;
+	      color = (doubleN / maxiter) * 255;
       }
       else{
         color=0;

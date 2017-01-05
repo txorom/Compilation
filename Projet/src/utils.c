@@ -47,7 +47,6 @@ int list_of_variable(char *src, char **dest){
 		dest[nb] = malloc(sizeof(char) * strlen(buf));
 		asprintf(&dest[nb], "%s", buf);
 		nb++;
-		dest = realloc(dest, sizeof(char) * (nb + 1));
 		if(*src != '\0')
 			src++;
 	}
@@ -74,7 +73,6 @@ int list_of_args(char *src, char **dest){
 		dest[nb] = malloc(sizeof(char) * strlen(buf));
 		asprintf(&dest[nb], "%s", buf);
 		nb++;
-		dest = realloc(dest, sizeof(char) * (nb + 1));
 		while(*src != '\n'){
 			src ++;
 		}
@@ -181,7 +179,9 @@ char *conv_ret(char *src, enum type_base t, char *var){
 	char type1[10], var1[20], var_r[20], store[10], type2[10];
 	int nb_conv = 0, length_conv, var_conv, length_old_line = 0;
 	int n = strlen(src);
-	char *buf = malloc(sizeof(char) * n), *conv = NULL, *old_line = NULL;
+	char buf[10 * n];
+	char *conv = NULL;
+	char *old_line = NULL;
 	int i = 0;
 	while(*src != '\0'){
 		if(*src == 's'){
@@ -203,8 +203,7 @@ char *conv_ret(char *src, enum type_base t, char *var){
 									asprintf(&old_line, "%s %s %s %s %s", store, type1, var1, type2, var_r);
 									length_old_line += strlen(old_line);
 									length_conv = strlen(conv);
-									buf = realloc(buf, sizeof(char) * (n + length_conv));
-									asprintf(&buf, "%s%s", buf, conv);
+									strcat(buf, conv);
 									i += length_conv;
 									src += length_old_line + 1;							
 									nb_conv ++;
@@ -222,7 +221,6 @@ char *conv_ret(char *src, enum type_base t, char *var){
 	}
 	buf[i] = '\0';
 	asprintf(&src, "%s", buf);
-	free(buf);
 	free(conv);
 	free(old_line);
 	return src;
