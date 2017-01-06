@@ -5,6 +5,9 @@
 
 struct type *new_type(enum type_base t){
   struct type *ret = malloc(sizeof(struct type));
+  ret->is_tab = 0;
+  ret->nb_elem = 0;
+  ret->elem_of_tab = 0;
   ret->is_function = 0;
   ret->nb_args = 0;
   ret->tb = t;
@@ -37,8 +40,11 @@ struct type* cpy_type(struct type *t){
 		struct type *new = new_type(t->tb);
 		new->is_function = t->is_function;
 		new->nb_args = t->nb_args;
+		new->is_tab = t->is_tab;
+		new->nb_elem = t->nb_elem;
+		new->elem_of_tab = t->elem_of_tab;
 		if(new->nb_args){
-			new->args = malloc(sizeof(enum type_base) * new->nb_args);
+			new->args = malloc(sizeof(struct type) * new->nb_args);
 			for(int i = 0; i < new->nb_args; i++){
 				new->args[i] = t->args[i];
 			}

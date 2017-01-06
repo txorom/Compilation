@@ -6,6 +6,7 @@
 
 struct expr{
     char *code;
+    char *code_alloc_point; //To allocate a element of a table
     int var; //To know the number of the registre
     char *name; //To know the name of the registre
     char *real_name; //To know the name of the variable

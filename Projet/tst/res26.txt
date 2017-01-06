@@ -1,0 +1,1 @@
+[31mErreur : [0mi32 au lieu d'un tableau de i32 pour l'appel de la fonction "toto" à la ligne 11

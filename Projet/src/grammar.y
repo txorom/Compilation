@@ -12,13 +12,13 @@
     int yyerror ();
     struct list *tab_symbol;
     char *CODE;
-    char alloc_param[1024] = "";
-    int error = 0;
-    enum type_base type_name_glob;
-    int type_return_function = -1;
-    int var_return = -1;
-    char name_arg[1024] = "";
-    char name_arg_func[1024][1024];
+    char alloc_param[1024] = ""; //Les paramètres à allouer
+    int error = 0; //S'il y a des erreurs ou non
+    enum type_base type_name_glob; //Le type de la fonction en cours
+    int type_return_function = -1; //Le type de retour de la fonction
+    int var_return = -1; //La variable utilisé pour effectuer un retour de fonction
+    char name_arg[1024] = ""; //Les paramètre d'une fonction
+    char name_arg_func[1024][1024];//Les paramètres d'appels à une fonction
     int nb_arg_func = 0;
     int nb_arg_func_decl = 0;
     int nb_arg_func_decl_bis = 0;
@@ -217,10 +217,16 @@ primary_expression
               e->use = 1;
               $$ = cpy_expr(e);
               $$->var = new_var();
+              $$->real_name = $1;
               char *code = NULL;
               char *name_x = NULL;
               asprintf(&name_x, "x%d", $$->var);
-              asprintf(&code, "%%x%d = load %s, %s* %s\n", $$->var, name_of_type($$->t->tb), name_of_type($$->t->tb), e->name);
+              if(e->t->is_tab == 0){
+                asprintf(&code, "%%x%d = load %s, %s* %s\n", $$->var, name_of_type($$->t->tb), name_of_type($$->t->tb), e->name);
+              }
+              else{
+                asprintf(&code, "%%x%d = getelementptr inbounds [%d x %s], [%d x %s]* %s, i32 0, i32 0\n", $$->var, e->t->nb_elem, name_of_type($$->t->tb), e->t->nb_elem, name_of_type($$->t->tb), e->name);
+              }
               $$->code = code;
               add_list(tab_symbol, cpy_expr($$), name_x);
               free(name_x);
@@ -231,6 +237,7 @@ primary_expression
               $$->t=new_type(TYPE_INT);
               char *code, *name;
               asprintf(&name, "x%d", $$->var);
+              $$->name = name;
               asprintf(&code, "%%x%d = add i32 0, %d \n",$$->var, $1);
               add_list(tab_symbol, cpy_expr($$), name);
               $$->code = code;
@@ -325,45 +332,163 @@ primary_expression
                                                struct expr *e_arg;
                                                for(int i = 0; i < nb_args - 1; i++){
                                                  e_arg = find_list(tab_symbol, args[i]);
-                                                 if(e_arg->t->tb == e->t->args[i]){
+                                                 if(e_arg->t->tb == e->t->args[i]->tb){
                                                    strcat(arg, name_of_type(e_arg->t->tb));
+                                                   if(e->t->args[i]->is_tab == 1){
+                                                    if(e_arg->t->is_tab == 1){
+                                                      strcat(arg, "*");
+                                                    }
+                                                    else{
+                                                      error ++;
+                                                      couleur("31");
+                                                      printf("Erreur : ");
+                                                      couleur("0");
+                                                      printf("%s au lieu d'un tableau de %s pour l'appel de la fonction \"%s\" à la ligne %d\n", name_of_type(e_arg->t->tb), name_of_type(e_arg->t->tb), $1, yylineno);
+                                                      return 1;
+                                                    }
+                                                   }
+                                                   else{
+                                                    if(e_arg->t->is_tab == 1){
+                                                      error ++;
+                                                      couleur("31");
+                                                      printf("Erreur : ");
+                                                      couleur("0");
+                                                      printf("Tableau de %s au lieu de %s pour l'appel de la fonction \"%s\" à la ligne %d\n", name_of_type(e_arg->t->tb), name_of_type(e_arg->t->tb), $1, yylineno);
+                                                      return 1;
+                                                    }
+                                                   }
                                                    strcat(arg, " %");
                                                    strcat(arg, args[i]);
                                                    strcat(arg, ", ");
                                                  }
                                                  else{
                                                   var = new_var();
-                                                  if(e->t->args[i] == TYPE_INT){
-                                                    attention = 1;
-                                                    asprintf(&tmp_conv, "%%x%d = fptosi double %%%s to i32\n", var, args[i]);
+                                                  if(e->t->args[i]->tb == TYPE_INT){
+                                                    if(e_arg->t->is_tab == 0 && e->t->args[i]->is_tab == 0){
+                                                      attention = 1;
+                                                      asprintf(&tmp_conv, "%%x%d = fptosi double %%%s to i32\n", var, args[i]);
+                                                    }
+                                                    else if(e_arg->t->is_tab == 1 && e->t->args[i]->is_tab == 0){
+                                                      error ++;
+                                                      couleur("31");
+                                                      printf("Erreur : ");
+                                                      couleur("0");
+                                                      printf("Tableau de %s au lieu de %s pour l'appel de la fonction \"%s\" à la ligne %d\n", name_of_type(e_arg->t->tb), name_of_type(e->t->args[i]->tb), $1, yylineno);
+                                                      return 1;
+                                                    }
+                                                    else{
+                                                      error ++;
+                                                      couleur("31");
+                                                      printf("Erreur : ");
+                                                      couleur("0");
+                                                      printf("Tableau de double au lieu d'un tableau de int pour l'appel de la fonction \"%s\" à la ligne %d\n", $1, yylineno);
+                                                      return 1;
+                                                    }
                                                   }
                                                   else{
-                                                    attention = 1;
-                                                    asprintf(&tmp_conv, "%%x%d = sitofp i32 %%%s to double\n", var, args[i]);
+                                                    if(e_arg->t->is_tab == 0 && e->t->args[i]->is_tab == 0){
+                                                      attention = 1;
+                                                      asprintf(&tmp_conv, "%%x%d = sitofp i32 %%%s to double\n", var, args[i]);
+                                                    }
+                                                    else if(e_arg->t->is_tab == 1 && e->t->args[i]->is_tab == 0){
+                                                      error ++;
+                                                      couleur("31");
+                                                      printf("Erreur : ");
+                                                      couleur("0");
+                                                      printf("Tableau de %s au lieu de %s pour l'appel de la fonction \"%s\" à la ligne %d\n", name_of_type(e_arg->t->tb), name_of_type(e->t->args[i]->tb), $1, yylineno);
+                                                      return 1;
+                                                    }
+                                                    else{
+                                                      error ++;
+                                                      couleur("31");
+                                                      printf("Erreur : ");
+                                                      couleur("0");
+                                                      printf("Tableau de int au lieu d'un tableau de double pour l'appel de la fonction \"%s\" à la ligne %d\n", $1, yylineno);
+                                                      return 1;
+                                                    }
                                                   }
                                                   strcat(conversion, tmp_conv);
-                                                  asprintf(&tmp_arg, "%s %%x%d, ", name_of_type(e->t->args[i]), var);
+                                                  asprintf(&tmp_arg, "%s %%x%d, ", name_of_type(e->t->args[i]->tb), var);
                                                   strcat(arg, tmp_arg);
                                                  }
                                                }
                                                e_arg = find_list(tab_symbol, args[nb_args - 1]);
-                                               if(e_arg->t->tb == e->t->args[nb_args - 1]){
+                                               if(e_arg->t->tb == e->t->args[nb_args - 1]->tb){
                                                    strcat(arg, name_of_type(e_arg->t->tb));
+                                                   if(e->t->args[nb_args - 1]->is_tab == 1){
+                                                    if(e_arg->t->is_tab == 1){
+                                                      strcat(arg, "*");
+                                                    }
+                                                    else{
+                                                      error ++;
+                                                      couleur("31");
+                                                      printf("Erreur : ");
+                                                      couleur("0");
+                                                      printf("%s au lieu d'un tableau de %s pour l'appel de la fonction \"%s\" à la ligne %d\n", name_of_type(e_arg->t->tb), name_of_type(e_arg->t->tb), $1, yylineno);
+                                                      return 1;
+                                                    }
+                                                   }
+                                                   else{
+                                                    if(e_arg->t->is_tab == 1){
+                                                      error ++;
+                                                      couleur("31");
+                                                      printf("Erreur : ");
+                                                      couleur("0");
+                                                      printf("Tableau de %s au lieu de %s pour l'appel de la fonction \"%s\" à la ligne %d\n", name_of_type(e_arg->t->tb), name_of_type(e_arg->t->tb), $1, yylineno);
+                                                      return 1;
+                                                    }
+                                                   }
                                                    strcat(arg, " %");
                                                    strcat(arg, args[nb_args - 1]);
                                                }
                                                else{
                                                 var = new_var();
-                                                if(e->t->args[nb_args - 1] == TYPE_INT){
-                                                  attention = 1;
-                                                  asprintf(&tmp_conv, "%%x%d = fptosi double %%%s to i32\n", var, args[nb_args - 1]);
+                                                if(e->t->args[nb_args - 1]->tb == TYPE_INT){
+                                                    if(e_arg->t->is_tab == 0 && e->t->args[nb_args - 1]->is_tab == 0){
+                                                      attention = 1;
+                                                      asprintf(&tmp_conv, "%%x%d = fptosi double %%%s to i32\n", var, args[nb_args - 1]);
+                                                    }
+                                                    else if(e_arg->t->is_tab == 1 && e->t->args[nb_args - 1]->is_tab == 0){
+                                                      error ++;
+                                                      couleur("31");
+                                                      printf("Erreur : ");
+                                                      couleur("0");
+                                                      printf("Tableau de %s au lieu de %s pour l'appel de la fonction \"%s\" à la ligne %d\n", name_of_type(e_arg->t->tb), name_of_type(e->t->args[nb_args - 1]->tb), $1, yylineno);
+                                                      return 1;
+                                                    }
+                                                    else{
+                                                      error ++;
+                                                      couleur("31");
+                                                      printf("Erreur : ");
+                                                      couleur("0");
+                                                      printf("Tableau de double au lieu d'un tableau de int pour l'appel de la fonction \"%s\" à la ligne %d\n", $1, yylineno);
+                                                      return 1;
+                                                    }
                                                 }
                                                 else{
-                                                  attention = 1;
-                                                  asprintf(&tmp_conv, "%%x%d = sitofp i32 %%%s to double\n", var, args[nb_args - 1]);
+                                                  if(e_arg->t->is_tab == 0 && e->t->args[nb_args - 1]->is_tab == 0){
+                                                      attention = 1;
+                                                      asprintf(&tmp_conv, "%%x%d = sitofp i32 %%%s to double\n", var, args[nb_args - 1]);
+                                                  }
+                                                  else if(e_arg->t->is_tab == 1 && e->t->args[nb_args - 1]->is_tab == 0){
+                                                      error ++;
+                                                      couleur("31");
+                                                      printf("Erreur : ");
+                                                      couleur("0");
+                                                      printf("Tableau de %s au lieu de %s pour l'appel de la fonction \"%s\" à la ligne %d\n", name_of_type(e_arg->t->tb), name_of_type(e->t->args[nb_args - 1]->tb), $1, yylineno);
+                                                      return 1;
+                                                  }
+                                                  else{
+                                                      error ++;
+                                                      couleur("31");
+                                                      printf("Erreur : ");
+                                                      couleur("0");
+                                                      printf("Tableau de int au lieu d'un tableau de double pour l'appel de la fonction \"%s\" à la ligne %d\n", $1, yylineno);
+                                                      return 1;
+                                                  }
                                                 }
                                                 strcat(conversion, tmp_conv);
-                                                asprintf(&tmp_arg, "%s %%x%d", name_of_type(e->t->args[nb_args - 1]), var);
+                                                asprintf(&tmp_arg, "%s %%x%d", name_of_type(e->t->args[nb_args - 1]->tb), var);
                                                 strcat(arg, tmp_arg);
                                                }
                                                if(attention == 1){
@@ -394,6 +519,46 @@ postfix_expression
                       $$ = cpy_expr($1);
                       free_expr(&$1);
                      }
+|postfix_expression '[' expression ']' {//printf("postfix_expression -> postfix_expression '[' expression ']' \n");//Vérifier existence et si tab
+                                        struct expr *e = find_list(tab_symbol, $1->real_name);
+                                        if(e == NULL){
+                                          error ++;
+                                          couleur("31");
+                                          printf("Erreur : ");
+                                          couleur("0");
+                                          printf("Variable \"%s\" inconnue à la ligne %d\n", $1->real_name, yylineno);
+                                          return 1;
+                                        }
+                                        if(e->t->is_tab == 0){
+                                          error ++;
+                                          couleur("31");
+                                          printf("Erreur : ");
+                                          couleur("0");
+                                          printf("Variable \"%s\" n'est pas un tableau à la ligne %d\n", $1->real_name, yylineno);
+                                          return 1;
+                                        }
+                                        if($3->t->tb != TYPE_INT){
+                                          error ++;
+                                          couleur("31");
+                                          printf("Erreur : ");
+                                          couleur("0");
+                                          printf("L'indice d'un tableau doit être un entier à la ligne %d\n", yylineno);
+                                          return 1;
+                                        }
+                                        $$ = new_expr();
+                                        char *code = NULL, *name_x = NULL, *code_alloc_point = NULL;
+                                        int var = new_var();
+                                        asprintf(&name_x, "%%x%d", var);
+                                        asprintf(&code_alloc_point, "%s%s = getelementptr inbounds [100 x %s], [100 x %s]* %s, i32 0, i32 %%%s\n", $3->code, name_x, name_of_type($1->t->tb), name_of_type($1->t->tb), $1->name, $3->name);
+                                        $$->code_alloc_point = code_alloc_point;
+                                        $$->var = new_var();
+                                        asprintf(&code, "%s%%x%d = load %s, %s* %s\n", code_alloc_point, $$->var, name_of_type($1->t->tb), name_of_type($1->t->tb), name_x);
+                                        $$->t = new_type($1->t->tb);
+                                        $$->code = code;
+                                        $$->t->elem_of_tab = 1;
+                                        $$->name = name_x;
+                                        //printf("%s\n", code);
+                                       }                    
 | postfix_expression INC_OP {//printf("postfix_expression -> postfix_expression INC_OP \n");
                              $$ = new_expr();
                              int var = new_var();
@@ -914,7 +1079,12 @@ expression
       asprintf(&conversion, "%%x%d = sitofp i32 %%x%d to double\n", var3, $3->var);
      }
      if(strcmp($2->code, "store") == 0){
-      asprintf(&code, "%s%s%s %s %%x%d, %s* %s\n", $3->code, conversion, $2->code, name_of_type($1->t->tb), var3, name_of_type($1->t->tb), $1->name);
+      if($1->t->elem_of_tab == 1){
+        asprintf(&code, "%s%s%s%s %s %%x%d, %s* %s\n", $1->code_alloc_point, $3->code, conversion, $2->code, name_of_type($1->t->tb), var3, name_of_type($1->t->tb), $1->name);
+      }
+      else{
+        asprintf(&code, "%s%s%s %s %%x%d, %s* %s\n", $3->code, conversion, $2->code, name_of_type($1->t->tb), var3, name_of_type($1->t->tb), $1->name);
+      }
      }
      else{
       if((strcmp($2->code, "srem") == 0) || (strcmp($2->code, "shl") == 0) || (strcmp($2->code, "ashr") == 0)){//Modulo ou décalage qu'avec des entiers
@@ -941,7 +1111,12 @@ expression
       else{
         asprintf(&signe, "f%s", $2->code);
       }
-      asprintf(&code, "%s%%x%d = load %s, %s* %s\n%s%%x%d = %s %s %%x%d, %%x%d\nstore %s %%x%d, %s* %s\n", $3->code, var_tmp, name_of_type($1->t->tb), name_of_type($1->t->tb), $1->name, conversion, var_res, signe, name_of_type($1->t->tb), var_tmp, var3,name_of_type($1->t->tb), var_res, name_of_type($1->t->tb), $1->name);
+      if($1->t->elem_of_tab == 1){
+        asprintf(&code, "%s%s%%x%d = load %s, %s* %s\n%s%%x%d = %s %s %%x%d, %%x%d\nstore %s %%x%d, %s* %s\n", $1->code_alloc_point, $3->code, var_tmp, name_of_type($1->t->tb), name_of_type($1->t->tb), $1->name, conversion, var_res, signe, name_of_type($1->t->tb), var_tmp, var3,name_of_type($1->t->tb), var_res, name_of_type($1->t->tb), $1->name);
+      }
+      else{
+        asprintf(&code, "%s%%x%d = load %s, %s* %s\n%s%%x%d = %s %s %%x%d, %%x%d\nstore %s %%x%d, %s* %s\n", $3->code, var_tmp, name_of_type($1->t->tb), name_of_type($1->t->tb), $1->name, conversion, var_res, signe, name_of_type($1->t->tb), var_tmp, var3,name_of_type($1->t->tb), var_res, name_of_type($1->t->tb), $1->name);
+      }
      }
      $$->code = code;     
      free_expr(&$1);
@@ -1018,9 +1193,16 @@ declaration
                                  int nb_var = list_of_variable($2->code, tab);
                                  for(int i = 0; i < nb_var; i++){
                                     e = find_list(tab_symbol, tab[i]);
-                                    e->t = new_type(type_of_name($1->code));
-                                    e->var = new_var();
-                                    asprintf(&list, "%s = alloca %s\n", e->name, $1->code);
+                                    if(e->t == NULL){
+                                      e->t = new_type(type_of_name($1->code));
+                                      e->var = new_var();
+                                      asprintf(&list, "%s = alloca %s\n", e->name, $1->code);
+                                    }
+                                    else{
+                                      e->t->tb = type_of_name($1->code);
+                                      e->var = new_var();
+                                      asprintf(&list, "%s = alloca [%d x %s]\n", e->name, e->t->nb_elem, $1->code);
+                                    }
                                     strcat(code1, list);
                                     free(list);
                                     free(tab[i]);
@@ -1055,7 +1237,8 @@ type_name
        char *code = NULL;
        asprintf(&code, "void");
        $$->code = code;
-       type_name_glob = TYPE_VOID;
+       if(type_name_glob == TYPE_UNKNOWN)
+        type_name_glob = TYPE_VOID;
        }
 | INT {//printf("type_name -> INT \n");
        $$ = new_expr();
@@ -1063,7 +1246,8 @@ type_name
        char *code = NULL;
        asprintf(&code, "i32");
        $$->code = code;
-       type_name_glob = TYPE_INT;
+       if(type_name_glob == TYPE_UNKNOWN)
+        type_name_glob = TYPE_INT;
       }
 | DOUBLE {//printf("type_name -> DOUBLE \n");
           $$ = new_expr();
@@ -1071,6 +1255,7 @@ type_name
           char *code = NULL;
           asprintf(&code, "double");
           $$->code = code;
+          if(type_name_glob == TYPE_UNKNOWN)
           type_name_glob = TYPE_DOUBLE;
          }
 ;
@@ -1095,9 +1280,9 @@ declarator
               e->var = new_var();
               asprintf(&name, "%%x%d_%s", e->var, code);
               e->name = name;
+              e->real_name = $1;
               if(is_func_prev == 0){
                 e->real = 1;
-                e->real_name = $1;
                 add_list(tab_symbol, cpy_expr(e), $1);
               }
               $$ = e;
@@ -1113,13 +1298,13 @@ declarator
                                      expr_function->t = new_type(type_name_glob);
                                      expr_function->t->is_function = 1;
                                      expr_function->use = 1;
-                                     expr_function->t->nb_args = nb_arg_func_decl;
-                                     expr_function->t->args = malloc(sizeof(enum type_base) * nb_arg_func_decl);
-                                     for(int i = 0; i < nb_arg_func_decl; i++)
-                                      expr_function->t->args[i] = type_func[i];
+                                     expr_function->t->nb_args = nb_arg_func_decl_bis;
+                                     expr_function->t->args = malloc(sizeof(struct type) * nb_arg_func_decl);
+                                     for(int i = 0; i < nb_arg_func_decl_bis; i++){
+                                      expr_function->t->args[i] = cpy_type(expr_arg_decl[i]->t);
+                                    }
                                      asprintf(&code, "%s(%s)", $1->code, $3->code);
                                      $$->code = code;
-                                     nb_arg_func_decl = 0;
                                      free_expr(&$1);
                                      free_expr(&$3);
                                     }
@@ -1134,6 +1319,38 @@ declarator
                       $$->code = code;
                       free_expr(&$1);
                      }
+| declarator '[' CONSTANTI ']'{//printf("declarator -> declarator '[' CONSTANTI ']' (%d)\n", $3);
+                               $$ = cpy_expr($1);
+                               if(is_func_prev == 0){
+                                 struct expr *e = find_list(tab_symbol, $1->code);
+                                 e->t = new_type(TYPE_UNKNOWN);
+                                 e->t->is_tab = 1;
+                                 e->t->nb_elem = $3;
+                               }
+                               else{
+                                $$ = cpy_expr($1);
+                                $$->t = new_type(TYPE_UNKNOWN);
+                                $$->t->is_tab = 1;
+                                $$->t->nb_elem = -1;
+                               }
+                               free_expr(&$1);
+                              }
+| declarator '['']'{//printf("declarator -> declarator '['']'\n");
+                    struct expr *e = find_list(tab_symbol, $1->real_name);
+                    if(e != NULL && is_func_prev == 0){
+                      error++;
+                      couleur("31");
+                      printf("Erreur : ");
+                      couleur("0");
+                      printf("Il manque une taille au tableau \"%s\" à la ligne %d\n", $1->real_name, yylineno);
+                      return 1;
+                    }
+                    $$ = cpy_expr($1);
+                    $$->t = new_type(TYPE_UNKNOWN);
+                    $$->t->is_tab = 1;
+                    $$->t->nb_elem = -1;
+                    free_expr(&$1);
+                   }
 
 ;
 
@@ -1161,16 +1378,29 @@ parameter_declaration
                         char *code = NULL;
                         char *name = NULL;
                         char *alloc = NULL;
-                        type_func[nb_arg_func_decl] = type_of_name($2->code);
-                        nb_arg_func_decl ++;
+                        //type_func[nb_arg_func_decl] = type_of_name($2->code);
+                        //nb_arg_func_decl ++;
                         asprintf(&name, "%s", $3->code);
-                        asprintf(&code, "%s %%%s", $2->code, $3->code);
                         struct expr *e = new_expr();
-                        e->t = new_type(type_of_name($2->code));
+                        if($3->t == NULL){
+                          e->t = new_type(type_of_name($2->code));
+                          asprintf(&code, "%s %%%s", $2->code, $3->code);
+                        }
+                        else{
+                          e->t = new_type(type_of_name($2->code));
+                          e->t->is_tab = $3->t->is_tab;
+                          e->t->nb_elem = $3->t->nb_elem;
+                          asprintf(&code, "%s* %%%s", $2->code, $3->code);
+                        }
                         asprintf(&e->name, "%%%s.addr", $3->code);
                         strcat(name, " ");
                         strcat(name_arg, name);
-                        asprintf(&alloc, "%s = alloca %s\nstore %s %%%s, %s* %s\n", e->name, name_of_type(e->t->tb), name_of_type(e->t->tb), name, name_of_type(e->t->tb), e->name);
+                        if(e->t->is_tab == 0){
+                          asprintf(&alloc, "%s = alloca %s\nstore %s %%%s, %s* %s\n", e->name, name_of_type(e->t->tb), name_of_type(e->t->tb), name, name_of_type(e->t->tb), e->name);
+                        }
+                        else{
+                          asprintf(&alloc, "%s = alloca %s*\nstore %s* %%%s, %s** %s\n", e->name, name_of_type(e->t->tb), name_of_type(e->t->tb), name, name_of_type(e->t->tb), e->name);
+                        }
                         expr_arg_decl[nb_arg_func_decl_bis] = cpy_expr(e);
                         nb_arg_func_decl_bis ++;
                         strcat(alloc_param, alloc);
@@ -1614,6 +1844,14 @@ jump_statement
                          if(var_return == -1){
                           var_return = new_var();
                          }
+                         if($2->t->is_tab == 1){
+                          error ++;
+                          couleur("31");
+                          printf("Erreur : ");
+                          couleur("0");
+                          printf("Une fonction ne peut pas retourner de tableau à la ligne %d\n", yylineno);
+                          return 1;
+                         }
                          char *code = NULL;
                          type_return_function = $2->t->tb;
                          asprintf(&code, "%sstore %s %%x%d, %s* %%x%d\n", $2->code, name_of_type($2->t->tb), $2->var, name_of_type($2->t->tb), var_return);
@@ -1659,7 +1897,8 @@ external_declaration
                        char *code = NULL;
                        asprintf(&code, "%s", $1->code);
                        $$->code = code; 
-                       free_expr(&$1);                      
+                       free_expr(&$1);
+                       type_name_glob = TYPE_UNKNOWN;                      
                        }
 | declaration {//printf("external_declaration -> declaration \n");
                $$ = new_expr();
@@ -1686,8 +1925,10 @@ external_declaration
                $$->code = code;
                free_expr(&$1);
                free(tab);
+               type_name_glob = TYPE_UNKNOWN;
               }
 ;
+
 
 function_definition
 : type_name declarator compound_statement {//printf("function_definition -> type_name declarator compound_statement \n");
@@ -1761,6 +2002,7 @@ int yyerror (char *s) {
 
 
 int main (int argc, char *argv[]) {
+  type_name_glob = TYPE_UNKNOWN;
   tab_symbol = create_list();
   add_basic_function(tab_symbol);
   FILE *input = NULL;

@@ -147,10 +147,12 @@ int compare_list(char src1[1024][1024], int taille1, char*src, char dest[1024][1
 		buf[i] = '\0';
 		strcpy(src2[nb], buf);
 		nb++;
-		while(*src != '\n'){
+		while(*src != '\n' && *src != '\0'){
 			src ++;
 		}
-		src ++;
+		if(*src != '\0'){
+			src ++;
+		}
 	}
 	for(int i = 0; i < taille1; i++){
 		for(int j = 0; j < nb; j++){

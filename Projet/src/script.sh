@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for (( i = 1; i < 24; i++ )); do
+for (( i = 1; i < 31; i++ )); do
 	echo -n "test"$i" : ";
 	fichier1="../tst/res"$i".txt";
 	fichier2="../tst/resbis"$i".txt";

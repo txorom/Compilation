@@ -1,0 +1,1 @@
+[31mErreur : [0mL'indice d'un tableau doit être un entier à la ligne 6

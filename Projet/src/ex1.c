@@ -1,4 +1,5 @@
-int main(){
+void toto(){
 	int tab[100];
-	tab[0] = 2; 
+	int a;
+	a = tab;
 }

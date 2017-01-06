@@ -37,6 +37,8 @@ L[a-zA-Z_]
 "=="		{ count(); return(EQ_OP); }
 "!="		{ count(); return(NE_OP); }
 ";"		{ count(); return(';'); }
+"["          {count(); return('[');}
+"]"          {count(); return(']');}
 "{"      	{ count(); return('{'); }
 "}"      	{ count(); return('}'); }
 ","		{ count(); return(','); }

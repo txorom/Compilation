@@ -1,6 +1,6 @@
 LEX=lex
 YACC=bison
-CFLAGS=-Wall -g
+CFLAGS=-Wall
 CC=gcc
 
 
@@ -16,7 +16,7 @@ grammar.c:grammar.y
 	$(LEX) -o $@ $^
 
 test: parse
-	@for i in `seq 1 23`; \
+	@for i in `seq 1 30`; \
 	do \
 		./parse "../tst/test"$$i".c" > "../tst/resbis"$$i".txt"; \
 	done; \

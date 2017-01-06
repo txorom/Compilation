@@ -1,0 +1,2 @@
+[31mErreur : [0mIl manque une taille au tableau "tab" à la ligne 5
+[35mAttention : [0mVariable tab inutilisée

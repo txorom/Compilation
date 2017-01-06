@@ -1,0 +1,2 @@
+[31mErreur : [0mVariable "a" n'est pas un tableau à la ligne 6
+[35mAttention : [0mVariable tab inutilisée

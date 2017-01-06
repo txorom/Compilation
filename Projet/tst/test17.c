@@ -9,7 +9,7 @@ double function(int a){
 
 void main() {
   int a;
-  int b;
+  double b;
   a = 2;
   b = function(a);
 }

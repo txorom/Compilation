@@ -1,0 +1,1 @@
+[31mErreur : [0mUne fonction ne peut pas retourner de tableau à la ligne 6
