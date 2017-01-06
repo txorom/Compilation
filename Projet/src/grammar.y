@@ -333,7 +333,7 @@ primary_expression
                                                for(int i = 0; i < nb_args - 1; i++){
                                                  e_arg = find_list(tab_symbol, args[i]);
                                                  if(e_arg->t->tb == e->t->args[i]->tb){
-                                                   strcat(arg, name_of_type(e_arg->t->tb));
+                                                   strcat(arg, name_of_type(e->t->args[i]->tb));
                                                    if(e->t->args[i]->is_tab == 1){
                                                     if(e_arg->t->is_tab == 1){
                                                       strcat(arg, "*");

@@ -22,5 +22,14 @@ test: parse
 	done; \
 	bash script.sh
 
+ex: parse
+	./parse ex.c
+	emcc ex.ll --js-library libraries/p5-wrap.js -s EXPORTED_FUNCTIONS="['_my_draw','_my_setup']" -o foo.js
+
+mandelbrot: parse
+	./parse mandelbrot.c
+	emcc mandelbrot.ll --js-library libraries/p5-wrap.js -s EXPORTED_FUNCTIONS="['_my_draw','_my_setup']" -o foo.js
+
+
 clean:
-	rm -f grammar.c scanner.c *~ parse *.ll ../tst/*.ll ../tst/resbis*
+	rm -f grammar.c scanner.c *~ parse *.ll ../tst/*.ll ../tst/resbis* foo.js
